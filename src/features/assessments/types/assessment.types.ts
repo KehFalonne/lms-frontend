@@ -42,6 +42,8 @@ export interface MyAssessment {
   passingScore: string;
   canStart: boolean;
   lastAttempt: MyAssessmentLastAttempt | null;
+  isCodeGated?: boolean;
+  caOpensAt?: string | null;
 }
 
 export interface AssessmentDetail {
@@ -62,6 +64,12 @@ export interface AssessmentDetail {
   status?: "DRAFT" | "PUBLISHED" | "CLOSED" | "ARCHIVED";
   publishedAt?: string | null;
   questionCount?: number;
+  isCodeGated?: boolean;
+  hasAccessCode?: boolean;
+  caOpensAt?: string | null;
+  caLastEntryAt?: string | null;
+  serveQuestionCount?: number | null;
+  randomizeQuestionOrder?: boolean;
 }
 
 export interface AttemptLiveQuestion {

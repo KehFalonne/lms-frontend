@@ -187,3 +187,20 @@ export async function createBankQuestion(bankId: string, payload: CreateQuestion
     payload
   );
 }
+// ── CA exam workflow ──────────────────────────────────────────────
+
+export async function enterAssessmentCode(assessmentId: string, code: string) {
+  return post<ApiResponse<AttemptLive>>(`/assessments/${assessmentId}/enter-with-code/`, {
+    code,
+  });
+}
+
+export async function generateAccessCode(assessmentId: string) {
+  return post<ApiResponse<{ code: string }>>(
+    `/assessments/${assessmentId}/generate-code/`
+  );
+}
+
+export async function setAccessCode(assessmentId: string, code: string) {
+  return post<ApiResponse<unknown>>(`/assessments/${assessmentId}/set-code/`, { code });
+}

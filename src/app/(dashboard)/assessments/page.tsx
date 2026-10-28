@@ -48,9 +48,17 @@ function AssessmentsContent() {
 
       {!isLoading && !isError && items.length > 0 && (
         <div className="space-y-3">
-          {items.map((a) => (
-            <AssessmentCard key={a.id} assessment={a} />
-          ))}
+          {items
+            .filter((a) => {
+              // Hide CA assessments until their window opens
+              if (a.isCodeGated && a.caOpensAt) {
+                return new Date(a.caOpensAt) <= new Date();
+              }
+              return true;
+            })
+            .map((a) => (
+              <AssessmentCard key={a.id} assessment={a} />
+            ))}
         </div>
       )}
     </div>

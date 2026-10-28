@@ -12,6 +12,12 @@ import {
   type CreateQuestionPayload,
 } from "../api/assessments.api";
 import {
+  enterAssessmentCode,
+  generateAccessCode,
+  setAccessCode,
+} from "../api/assessments.api";
+
+import {
   getAssessment,
   getAttemptResult,
   getLiveAttempt,
@@ -21,6 +27,7 @@ import {
   submitAttempt,
   type SaveAnswerPayload,
 } from "../api/assessments.api";
+
 import { normalizeError } from "@/lib/api/errors";
 
 export function useMyAssessments() {
@@ -229,6 +236,49 @@ export function useCreateBankQuestion(bankId: string) {
     onSuccess: () => {
       toast.success("Question created");
       qc.invalidateQueries({ queryKey: ["bank-questions", bankId] });
+    },
+    onError: (err) => toast.error(normalizeError(err).message),
+  });
+}
+export function useEnterCode(assessmentId: string) {
+  return useMutation({
+    mutationFn: (code: string) => enterAssessmentCode(assessmentId, code),
+    onError: (err) => toast.error(normalizeError(err).message),
+  });
+}
+
+export function useGenerateCode(assessmentId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () => generateAccessCode(assessmentId),
+    onSuccess: () => {
+      toast.success("New access code generated");
+      qc.invalidateQueries({ queryKey: ["assessment", assessmentId] });
+    },
+    onError: (err) => toast.error(normalizeError(err).message),
+  });
+}
+
+export function useSetCode(assessmentId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (code: string) => setAccessCode(assessmentId, code),
+    onSuccess: () => {
+      toast.success("Access code set");
+      qc.invalidateQueries({ queryKey: ["assessment", assessmentId] });
+    },
+    onError: (err) => toast.error(normalizeError(err).message),
+  });
+}
+
+export function useUpdateAssessment(assessmentId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: Record<string, unknown>) =>
+      updateAssessment(assessmentId, payload),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["assessment", assessmentId] });
+      toast.success("Assessment updated");
     },
     onError: (err) => toast.error(normalizeError(err).message),
   });

@@ -2,7 +2,7 @@
 import { use, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, FileQuestion, Plus, Send } from "lucide-react";
+import { ArrowLeft, FileQuestion, Plus, Send, KeyRound } from "lucide-react";
 
 import { AuthGate } from "@/components/layout/auth-gate";
 import { PageHeader } from "@/components/layout/page-header";
@@ -20,9 +20,12 @@ import {
   useAssessmentQuestions,
   usePublishAssessment,
   useQuestionBanks,
+  useGenerateCode,
+  useUpdateAssessment,
 } from "@/features/assessments/hooks/useAssessments";
 import { LECTURER_ROLES } from "@/lib/constants/routes";
 import { formatDateTime } from "@/lib/utils/format";
+import { Input } from "@/components/ui/input";
 
 export default function LecturerAssessmentDetailPage({
   params,
@@ -47,6 +50,8 @@ function DetailContent({
   const questionsQ = useAssessmentQuestions(assessmentId);
   const banksQ = useQuestionBanks();
   const publish = usePublishAssessment(courseId);
+  const generateCode = useGenerateCode(assessmentId);
+  const update = useUpdateAssessment(assessmentId);
 
   const [pickerOpen, setPickerOpen] = useState(false);
   const [editorOpen, setEditorOpen] = useState(false);
@@ -132,6 +137,121 @@ function DetailContent({
           </div>
         </CardContent>
       </Card>
+      {/* CA workflow panel */}
+      <Card className="mb-6">
+        <CardContent className="space-y-4 p-5">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-sm font-semibold">CA Exam Setup</h3>
+              <p className="text-muted-foreground mt-1 text-xs">
+                Code-gated exam flow with late-entry cutoff and server-enforced timing.
+              </p>
+            </div>
+            <Badge variant={a.isCodeGated ? "success" : "default"}>
+              {a.isCodeGated ? "Code-gated" : "Open"}
+            </Badge>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div>
+              <label className="mb-1.5 block text-sm font-medium">
+                Opens at (earliest entry)
+              </label>
+              <Input
+                type="datetime-local"
+                value={toLocalInput(a.caOpensAt)}
+                onChange={(e) =>
+                  update.mutate({
+                    caOpensAt: e.target.value
+                      ? new Date(e.target.value).toISOString()
+                      : null,
+                  })
+                }
+              />
+            </div>
+            <div>
+              <label className="mb-1.5 block text-sm font-medium">
+                Last entry at (late cutoff)
+              </label>
+              <Input
+                type="datetime-local"
+                value={toLocalInput(a.caLastEntryAt)}
+                onChange={(e) =>
+                  update.mutate({
+                    caLastEntryAt: e.target.value
+                      ? new Date(e.target.value).toISOString()
+                      : null,
+                  })
+                }
+              />
+            </div>
+            <div>
+              <label className="mb-1.5 block text-sm font-medium">
+                Questions to serve per student (optional)
+              </label>
+              <Input
+                type="number"
+                min={1}
+                placeholder="Leave blank to serve all questions"
+                value={a.serveQuestionCount ?? ""}
+                onChange={(e) =>
+                  update.mutate({
+                    serveQuestionCount: e.target.value ? Number(e.target.value) : null,
+                  })
+                }
+              />
+            </div>
+            <div>
+              <label className="flex items-center gap-2 pt-8 text-sm">
+                <input
+                  type="checkbox"
+                  checked={a.randomizeQuestionOrder ?? false}
+                  onChange={(e) =>
+                    update.mutate({
+                      randomizeQuestionOrder: e.target.checked,
+                    })
+                  }
+                  className="h-4 w-4"
+                />
+                Randomize question order
+              </label>
+            </div>
+          </div>
+
+          <div className="border-border bg-surface/50 rounded-md border p-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium">Access code</p>
+                <p className="text-muted-foreground text-xs">
+                  {a.hasAccessCode
+                    ? "A code is set. Share it with students at the start of the window."
+                    : "No code set yet."}
+                </p>
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => generateCode.mutate()}
+                  loading={generateCode.isPending}
+                >
+                  {a.hasAccessCode ? "Regenerate" : "Generate code"}
+                </Button>
+              </div>
+            </div>
+            {generateCode.data?.data?.code && (
+              <div className="border-success/30 bg-success/10 mt-3 rounded-md border p-3">
+                <p className="text-success text-xs font-semibold uppercase">
+                  New code — copy it now, it won't be shown again
+                </p>
+                <p className="mt-1 font-mono text-xl tracking-widest">
+                  {generateCode.data.data.code}
+                </p>
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
 
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
         <div>
@@ -212,4 +332,12 @@ function DetailContent({
       </Dialog>
     </div>
   );
+}
+function toLocalInput(iso: string | null | undefined): string {
+  if (!iso) return "";
+  const d = new Date(iso);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(
+    d.getDate()
+  )}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }

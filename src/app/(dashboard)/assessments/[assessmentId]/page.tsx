@@ -1,9 +1,9 @@
 "use client";
-import { use } from "react";
+import { use, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { AlertTriangle, ArrowLeft, Clock, FileQuestion } from "lucide-react";
-
+import { AlertTriangle, ArrowLeft, Clock, FileQuestion, KeyRound } from "lucide-react";
+import { EnterCodeDialog } from "@/features/assessments/components/enter-code-dialog";
 import { AuthGate } from "@/components/layout/auth-gate";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -34,7 +34,7 @@ function DetailInner({ params }: { params: Promise<{ assessmentId: string }> }) 
   const { data, isLoading, isError, refetch } = useAssessment(assessmentId);
   const start = useStartAttempt(assessmentId);
   const a = data?.data;
-
+  const [codeOpen, setCodeOpen] = useState(false);
   if (isLoading) {
     return (
       <div className="mx-auto max-w-2xl space-y-3">
@@ -118,17 +118,32 @@ function DetailInner({ params }: { params: Promise<{ assessmentId: string }> }) 
           </div>
 
           <div className="mt-6 flex justify-end">
-            <Button
-              onClick={onStart}
-              loading={start.isPending}
-              disabled={!a.canStart || attemptsRemaining <= 0}
-            >
-              {attemptsRemaining <= 0
-                ? "No attempts remaining"
-                : a.canStart
-                  ? "Begin assessment"
-                  : "Not available"}
-            </Button>
+            {a.isCodeGated ? (
+              <Button
+                onClick={() => setCodeOpen(true)}
+                disabled={!a.canStart || attemptsRemaining <= 0}
+              >
+                <KeyRound className="mr-1.5 h-4 w-4" />
+                Enter access code
+              </Button>
+            ) : (
+              <Button
+                onClick={onStart}
+                loading={start.isPending}
+                disabled={!a.canStart || attemptsRemaining <= 0}
+              >
+                {attemptsRemaining <= 0
+                  ? "No attempts remaining"
+                  : a.canStart
+                    ? "Begin assessment"
+                    : "Not available"}
+              </Button>
+            )}
+            <EnterCodeDialog
+              open={codeOpen}
+              onClose={() => setCodeOpen(false)}
+              assessmentId={assessmentId}
+            />
           </div>
         </CardContent>
       </Card>
