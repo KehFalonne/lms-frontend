@@ -8,6 +8,10 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils/cn";
 import { getNavItems } from "@/lib/constants/routes";
 import { useAuthStore } from "@/stores/auth.store";
+import {
+  acquireBodyScrollLock,
+  releaseBodyScrollLock,
+} from "@/lib/utils/body-scroll-lock";
 
 interface SidebarProps {
   mobileOpen?: boolean;
@@ -21,9 +25,9 @@ export function Sidebar({ mobileOpen = false, onClose }: SidebarProps) {
 
   useEffect(() => {
     if (!mobileOpen) return;
-    document.body.style.overflow = "hidden";
+    acquireBodyScrollLock();
     return () => {
-      document.body.style.overflow = "";
+      releaseBodyScrollLock();
     };
   }, [mobileOpen]);
 
@@ -59,7 +63,11 @@ export function Sidebar({ mobileOpen = false, onClose }: SidebarProps) {
         )}
       </div>
 
-      <nav className="pb-safe flex-1 overflow-y-auto p-3" aria-label="Main navigation">
+      <nav
+        className="pb-safe min-h-0 flex-1 overflow-y-auto overscroll-contain p-3"
+        data-scroll-region
+        aria-label="Main navigation"
+      >
         <ul className="space-y-1">
           {items.map(({ label, href, icon: Icon }) => {
             const active = pathname === href || pathname.startsWith(href + "/");
@@ -93,7 +101,7 @@ export function Sidebar({ mobileOpen = false, onClose }: SidebarProps) {
 
   return (
     <>
-      <aside className="border-border bg-background hidden h-screen w-60 shrink-0 flex-col border-r md:flex">
+      <aside className="border-border bg-background sticky top-0 hidden h-screen max-h-screen w-60 shrink-0 flex-col border-r md:flex">
         {content}
       </aside>
 

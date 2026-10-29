@@ -5,6 +5,10 @@ import { X } from "lucide-react";
 
 import { Button } from "./button";
 import { cn } from "@/lib/utils/cn";
+import {
+  acquireBodyScrollLock,
+  releaseBodyScrollLock,
+} from "@/lib/utils/body-scroll-lock";
 
 type DialogSize = "sm" | "md" | "lg" | "xl";
 
@@ -56,7 +60,7 @@ export function Dialog({
     if (!open) return;
 
     previousFocus.current = document.activeElement as HTMLElement | null;
-    document.body.style.overflow = "hidden";
+    acquireBodyScrollLock();
 
     // Focus the first form field if any (skip the X close button when
     // we can). Fall back to the panel itself.
@@ -110,7 +114,7 @@ export function Dialog({
 
     return () => {
       document.removeEventListener("keydown", handleKey);
-      document.body.style.overflow = "";
+      releaseBodyScrollLock();
       clearTimeout(focusTimer);
       previousFocus.current?.focus();
     };

@@ -35,7 +35,7 @@ function CourseLayoutInner({
   const base = `/courses/${courseId}`;
 
   return (
-    <div>
+    <div className="min-w-0">
       <Link
         href="/courses"
         className="text-muted-foreground hover:text-foreground mb-4 inline-flex items-center gap-1 text-sm"
@@ -44,7 +44,7 @@ function CourseLayoutInner({
       </Link>
 
       {/* ── Header shell — always renders ── */}
-      <div className="border-border bg-background mb-5 rounded-lg border p-5">
+      <div className="border-border bg-background mb-5 min-w-0 rounded-lg border p-4 sm:p-5">
         {offering ? (
           <>
             <div className="flex flex-wrap items-center gap-2">
@@ -54,7 +54,9 @@ function CourseLayoutInner({
                 <Badge variant="info">{offering.semester.name}</Badge>
               )}
             </div>
-            <h1 className="mt-2 text-xl font-semibold">{offering.course.title}</h1>
+            <h1 className="mt-2 text-xl font-semibold break-words">
+              {offering.course.title}
+            </h1>
             <p className="text-muted-foreground mt-1 text-sm">
               {offering.programme.name} · Section {offering.section}
             </p>

@@ -109,13 +109,27 @@
     -moz-osx-font-smoothing: grayscale;
     -webkit-text-size-adjust: 100%;
     text-size-adjust: 100%;
+    overflow-x: clip;
+    scroll-behavior: smooth;
   }
 
   body {
     background-color: hsl(var(--background));
     color: hsl(var(--foreground));
-    font-feature-settings: "rlig" 1, "calt" 1;
+    font-feature-settings:
+      "rlig" 1,
+      "calt" 1;
     overscroll-behavior-y: none;
+    overflow-x: clip;
+  }
+
+  /* Keep touch, keyboard, and programmatic scrolling consistent in nested views. */
+  [data-scroll-region],
+  .overflow-y-auto,
+  .overflow-y-scroll {
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-y: contain;
+    scroll-behavior: smooth;
   }
 
   /* Prevent iOS auto-zoom on focus (inputs must be ≥16px) */
@@ -126,7 +140,6 @@
   }
 
   @media (min-width: 640px) {
-
     input,
     select,
     textarea {
@@ -172,14 +185,11 @@
   }
 
   .scroll-fade-r {
-    background: linear-gradient(to right,
-        transparent 0%,
-        hsl(var(--background)) 90%);
+    background: linear-gradient(to right, transparent 0%, hsl(var(--background)) 90%);
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-
   *,
   *::before,
   *::after {
@@ -191,5 +201,12 @@
   .animate-spin,
   .animate-pulse {
     animation: none !important;
+  }
+
+  html,
+  [data-scroll-region],
+  .overflow-y-auto,
+  .overflow-y-scroll {
+    scroll-behavior: auto !important;
   }
 }

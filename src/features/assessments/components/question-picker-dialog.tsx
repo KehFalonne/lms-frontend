@@ -71,7 +71,7 @@ export function QuestionPickerDialog({ open, onClose, assessmentId }: Props) {
     >
       <div className="grid gap-4 md:grid-cols-[220px_1fr]">
         {/* Bank list */}
-        <div className="md:border-border md:border-r md:pr-4">
+        <div className="border-border border-b pb-3 md:border-r md:border-b-0 md:pr-4 md:pb-0">
           <p className="text-muted-foreground mb-2 text-xs font-semibold tracking-wide uppercase">
             Banks
           </p>
@@ -83,7 +83,7 @@ export function QuestionPickerDialog({ open, onClose, assessmentId }: Props) {
           ) : banks.length === 0 ? (
             <p className="text-muted-foreground text-xs">No banks yet.</p>
           ) : (
-            <ul className="space-y-1 md:max-h-[420px] md:overflow-y-auto">
+            <ul className="max-h-40 space-y-1 overflow-y-auto md:max-h-[420px]">
               {banks.map((b) => (
                 <li key={b.id}>
                   <button
@@ -153,7 +153,7 @@ export function QuestionPickerDialog({ open, onClose, assessmentId }: Props) {
                   description="This bank is empty or no matches found."
                 />
               ) : (
-                <ul className="space-y-2 md:max-h-[420px] md:overflow-y-auto md:pr-1">
+                <ul className="max-h-[50vh] space-y-2 overflow-y-auto pr-1 md:max-h-[420px]">
                   {questions.map((q) => {
                     const isAttached = attached.has(q.id);
                     return (

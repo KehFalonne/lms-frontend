@@ -191,7 +191,7 @@ export function QuestionEditorDialog({ open, onClose, bankId, onCreated }: Props
                         prev.map((o, idx) => ({ ...o, isCorrect: idx === i }))
                       )
                     }
-                    className="h-4 w-4"
+                    className="h-4 w-4 shrink-0"
                   />
                   <Input
                     value={opt.text}

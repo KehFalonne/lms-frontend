@@ -45,8 +45,8 @@ export function AssessmentQuestionsList({ assessmentId }: Props) {
   return (
     <div className="space-y-2">
       {rows.map((row, idx) => (
-        <Card key={row.id} className="p-4">
-          <div className="flex items-start gap-3">
+        <Card key={row.id} className="p-3 sm:p-4">
+          <div className="flex items-start gap-2 sm:gap-3">
             <div className="flex shrink-0 flex-col items-center gap-1">
               <span className="text-muted-foreground font-mono text-xs">{idx + 1}</span>
               <Button
@@ -109,17 +109,18 @@ export function AssessmentQuestionsList({ assessmentId }: Props) {
               )}
             </div>
 
-            <div className="flex shrink-0 flex-col items-end gap-2">
-              <div className="flex items-center gap-2">
+            <div className="flex shrink-0 flex-col items-stretch gap-2 sm:items-end">
+              <div className="flex items-center justify-between gap-2 sm:justify-end">
                 <label className="text-muted-foreground text-xs">Points</label>
                 <Input
                   type="number"
                   step="0.5"
                   defaultValue={row.points}
-                  className="h-8 w-16 text-sm"
+                  min={0}
+                  className="h-8 w-20 text-sm"
                   onBlur={(e) => {
                     const v = e.target.value;
-                    if (v !== row.points) {
+                    if (v && Number(v) >= 0 && v !== row.points) {
                       update.mutate({
                         aqId: row.id,
                         payload: { points: v },
@@ -133,7 +134,8 @@ export function AssessmentQuestionsList({ assessmentId }: Props) {
                 size="sm"
                 className="text-danger"
                 onClick={() => detach.mutate(row.id)}
-                loading={detach.isPending}
+                loading={detach.isPending && detach.variables === row.id}
+                disabled={detach.isPending}
               >
                 <Trash2 className="mr-1 h-3.5 w-3.5" />
                 Remove

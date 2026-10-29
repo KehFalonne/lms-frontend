@@ -2,15 +2,15 @@
 import { use, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, FileQuestion, Plus, Send, KeyRound } from "lucide-react";
+import { ArrowLeft, FileQuestion, KeyRound, Plus, Send } from "lucide-react";
 
 import { AuthGate } from "@/components/layout/auth-gate";
-import { PageHeader } from "@/components/layout/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Dialog } from "@/components/ui/dialog";
 import { EmptyState } from "@/components/ui/empty-state";
+import { ErrorState } from "@/components/ui/error-state";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AssessmentQuestionsList } from "@/features/assessments/components/assessment-questions-list";
 import { QuestionEditorDialog } from "@/features/assessments/components/question-editor-dialog";
@@ -66,12 +66,16 @@ function DetailContent({
 
   if (assessmentQ.isLoading) {
     return (
-      <div className="space-y-3">
+      <div className="w-full space-y-3">
         <Skeleton className="h-6 w-32" />
         <Skeleton className="h-32 w-full" />
         <Skeleton className="h-48 w-full" />
       </div>
     );
+  }
+
+  if (assessmentQ.isError) {
+    return <ErrorState onRetry={() => assessmentQ.refetch()} />;
   }
 
   if (!a) {
@@ -88,22 +92,27 @@ function DetailContent({
   };
 
   return (
-    <div>
-      <div className="mb-4 flex items-center justify-between gap-3">
+    <div className="min-w-0">
+      <div className="mb-4 flex flex-col items-stretch gap-3 sm:flex-row sm:items-center sm:justify-between">
         <Link
           href={`/lecturer/courses/${courseId}/assessments`}
-          className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1 text-sm"
+          className="text-muted-foreground hover:text-foreground inline-flex w-fit items-center gap-1 text-sm"
         >
           <ArrowLeft className="h-3.5 w-3.5" /> Back to assessments
         </Link>
 
-        <Link href={`/lecturer/courses/${courseId}/assessments/${assessmentId}/attempts`}>
-          <Button variant="outline">View attempts</Button>
+        <Link
+          href={`/lecturer/courses/${courseId}/assessments/${assessmentId}/attempts`}
+          className="w-full sm:w-auto"
+        >
+          <Button variant="outline" className="w-full sm:w-auto">
+            View attempts
+          </Button>
         </Link>
       </div>
 
       <Card className="mb-6">
-        <CardContent className="p-5">
+        <CardContent className="p-4 sm:p-5">
           <div className="flex flex-wrap items-center gap-2">
             <Badge variant="primary">{a.assessmentType}</Badge>
             <Badge variant={a.status === "PUBLISHED" ? "success" : "default"}>
@@ -114,7 +123,7 @@ function DetailContent({
               <Badge variant="outline">{a.timeLimitMinutes} min</Badge>
             )}
           </div>
-          <h1 className="mt-2 text-xl font-semibold">{a.title}</h1>
+          <h1 className="mt-2 text-xl font-semibold break-words">{a.title}</h1>
           {a.description && (
             <p className="text-muted-foreground mt-1 text-sm">{a.description}</p>
           )}
@@ -125,18 +134,19 @@ function DetailContent({
             </p>
           )}
 
-          <div className="mt-4 flex flex-wrap gap-2">
+          <div className="mt-4 flex flex-col items-stretch gap-2 sm:flex-row sm:flex-wrap sm:items-center">
             {a.status === "DRAFT" && (
               <Button
                 onClick={() => setConfirmPublish(true)}
                 disabled={questions.length === 0}
+                className="w-full sm:w-auto"
               >
                 <Send className="mr-1.5 h-4 w-4" />
                 Publish assessment
               </Button>
             )}
             {a.status === "DRAFT" && questions.length === 0 && (
-              <p className="text-muted-foreground self-center text-xs">
+              <p className="text-muted-foreground text-xs sm:self-center">
                 Add at least one question to publish.
               </p>
             )}
@@ -145,8 +155,8 @@ function DetailContent({
       </Card>
       {/* CA workflow panel */}
       <Card className="mb-6">
-        <CardContent className="space-y-4 p-5">
-          <div className="flex items-center justify-between">
+        <CardContent className="space-y-4 p-4 sm:p-5">
+          <div className="flex flex-col items-start gap-2 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <h3 className="text-sm font-semibold">CA Exam Setup</h3>
               <p className="text-muted-foreground mt-1 text-xs">
@@ -207,8 +217,8 @@ function DetailContent({
                 }
               />
             </div>
-            <div>
-              <label className="flex items-center gap-2 pt-8 text-sm">
+            <div className="flex items-end">
+              <label className="flex min-h-10 items-center gap-2 text-sm">
                 <input
                   type="checkbox"
                   checked={a.randomizeQuestionOrder ?? false}
@@ -225,21 +235,25 @@ function DetailContent({
           </div>
 
           <div className="border-border bg-surface/50 rounded-md border p-3">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <p className="text-sm font-medium">Access code</p>
+                <p className="flex items-center gap-1.5 text-sm font-medium">
+                  <KeyRound className="h-3.5 w-3.5" />
+                  Access code
+                </p>
                 <p className="text-muted-foreground text-xs">
                   {a.hasAccessCode
                     ? "A code is set. Share it with students at the start of the window."
                     : "No code set yet."}
                 </p>
               </div>
-              <div className="flex gap-2">
+              <div className="flex w-full gap-2 sm:w-auto">
                 <Button
                   size="sm"
                   variant="outline"
                   onClick={() => generateCode.mutate()}
                   loading={generateCode.isPending}
+                  className="w-full sm:w-auto"
                 >
                   {a.hasAccessCode ? "Regenerate" : "Generate code"}
                 </Button>
@@ -259,7 +273,7 @@ function DetailContent({
         </CardContent>
       </Card>
 
-      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+      <div className="mb-3 flex flex-col items-stretch gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h2 className="text-lg font-semibold">Questions</h2>
           <p className="text-muted-foreground text-xs">
@@ -267,12 +281,13 @@ function DetailContent({
             total points
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="grid grid-cols-2 gap-2 sm:flex">
           <Button
             size="sm"
             variant="outline"
             onClick={() => setPickerOpen(true)}
             disabled={banks.length === 0}
+            className="w-full"
           >
             <Plus className="mr-1.5 h-4 w-4" />
             From bank
@@ -281,6 +296,7 @@ function DetailContent({
             size="sm"
             onClick={() => setEditorOpen(true)}
             disabled={banks.length === 0}
+            className="w-full"
           >
             <Plus className="mr-1.5 h-4 w-4" />
             New question
@@ -288,15 +304,19 @@ function DetailContent({
         </div>
       </div>
 
-      {banks.length === 0 && (
+      {banksQ.isError ? (
+        <ErrorState onRetry={() => banksQ.refetch()} />
+      ) : questionsQ.isError ? (
+        <ErrorState onRetry={() => questionsQ.refetch()} />
+      ) : banks.length === 0 ? (
         <EmptyState
           icon={FileQuestion}
           title="No question bank"
           description="Create a question bank first to add questions to this assessment."
         />
+      ) : (
+        <AssessmentQuestionsList assessmentId={assessmentId} />
       )}
-
-      {banks.length > 0 && <AssessmentQuestionsList assessmentId={assessmentId} />}
 
       <QuestionPickerDialog
         open={pickerOpen}

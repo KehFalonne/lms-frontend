@@ -7,6 +7,7 @@ import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
+import { ErrorState } from "@/components/ui/error-state";
 import { Skeleton } from "@/components/ui/skeleton";
 import { get } from "@/lib/api/client";
 import { endpoints } from "@/lib/api/endpoints";
@@ -32,10 +33,11 @@ export default function LecturerStudentsPage({
 }) {
   const { courseId } = use(params);
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: ["lecturer-students", courseId],
     queryFn: () =>
       get<ApiResponse<EnrollmentRow[]>>(endpoints.courseOfferings.enrollments(courseId)),
+    staleTime: 30_000,
   });
 
   const items = data?.data ?? [];
@@ -43,17 +45,31 @@ export default function LecturerStudentsPage({
   return (
     <div>
       <div className="mb-4">
-        <h2 className="text-lg font-semibold">Students ({items.length})</h2>
+        <h2 className="text-lg font-semibold">
+          Students ({isLoading ? "…" : items.length})
+        </h2>
       </div>
 
       {isLoading && (
         <div className="space-y-2">
           <Skeleton className="h-16 w-full" />
           <Skeleton className="h-16 w-full" />
+          <Skeleton className="h-16 w-full" />
         </div>
       )}
 
-      {!isLoading && items.length === 0 && (
+      {isError && (
+        <ErrorState
+          title="Could not load students"
+          description={
+            (error as Error)?.message ??
+            "The server rejected the request. Check the backend log and try again."
+          }
+          onRetry={() => refetch()}
+        />
+      )}
+
+      {!isLoading && !isError && items.length === 0 && (
         <EmptyState
           icon={Users}
           title="No students enrolled"
@@ -61,7 +77,7 @@ export default function LecturerStudentsPage({
         />
       )}
 
-      {!isLoading && items.length > 0 && (
+      {!isLoading && !isError && items.length > 0 && (
         <Card className="divide-border divide-y">
           {items.map((e) => {
             const initials = `${e.student.firstName[0] ?? ""}${
