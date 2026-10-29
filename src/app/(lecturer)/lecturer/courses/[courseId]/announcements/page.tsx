@@ -10,9 +10,11 @@ import { Dialog } from "@/components/ui/dialog";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AnnouncementFormDialog } from "@/features/announcements/components/announcement-form-dialog";
+import { ReadersDialog } from "@/features/announcements/components/readers-dialog";
 import {
   useCourseAnnouncements,
   usePublishAnnouncement,
+  useAnnouncementReaders,
 } from "@/features/announcements/hooks/useAnnouncements";
 import { LECTURER_ROLES } from "@/lib/constants/routes";
 import { relativeTime } from "@/lib/utils/format";
@@ -35,7 +37,7 @@ function AnnouncementsContent({ params }: { params: Promise<{ courseId: string }
   const { data, isLoading } = useCourseAnnouncements(courseId);
   const publish = usePublishAnnouncement(courseId);
   const [confirmPublish, setConfirmPublish] = useState<Announcement | null>(null);
-
+  const [readersFor, setReadersFor] = useState<Announcement | null>(null);
   const items = data?.data ?? [];
 
   return (
@@ -93,6 +95,16 @@ function AnnouncementsContent({ params }: { params: Promise<{ courseId: string }
                       Publish
                     </Button>
                   )}
+                  <div className="mt-3 flex flex-wrap items-center gap-2">
+                    <span className="text-muted-foreground text-xs">
+                      {a.readCount ?? 0} read
+                    </span>
+                    {a.status === "PUBLISHED" && (
+                      <Button size="sm" variant="ghost" onClick={() => setReadersFor(a)}>
+                        View readers
+                      </Button>
+                    )}
+                  </div>
                 </div>
               </div>
             </Card>
@@ -132,6 +144,10 @@ function AnnouncementsContent({ params }: { params: Promise<{ courseId: string }
           All enrolled students will receive a notification.
         </p>
       </Dialog>
+
+      {readersFor && (
+        <ReadersDialog announcement={readersFor} onClose={() => setReadersFor(null)} />
+      )}
     </div>
   );
 }

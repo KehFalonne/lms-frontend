@@ -6,6 +6,7 @@ import type {
   CourseGradeDetail,
   GradeCategory,
   GradebookData,
+  GradeAppeal,
 } from "../types/grading.types";
 
 // ── Student ───────────────────────────────────────────────────────
@@ -61,4 +62,36 @@ export async function setCategoryWeights(
     `/course-offerings/${offeringId}/grade-categories/set-weights/`,
     { weights }
   );
+}
+
+export async function listGradeAppeals(gradeId: string) {
+  return get<ApiResponse<GradeAppeal[]>>(`/grades/${gradeId}/appeals/`);
+}
+
+export async function createAppeal(gradeId: string, reason: string) {
+  return post<ApiResponse<GradeAppeal>>(`/grades/${gradeId}/appeals/`, { reason });
+}
+
+export async function getAppealQueue(params?: { status?: string; mine?: boolean }) {
+  return get<ApiResponse<GradeAppeal[]>>("/appeals/", {
+    params: {
+      status: params?.status ?? "ACTIVE",
+      mine: params?.mine ? "true" : undefined,
+    },
+  });
+}
+
+export async function resolveAppeal(
+  appealId: string,
+  payload: {
+    decision: "APPROVED" | "DENIED";
+    reviewerNotes?: string;
+    newScore?: string | null;
+  }
+) {
+  return post<ApiResponse<GradeAppeal>>(`/appeals/${appealId}/resolve/`, payload);
+}
+
+export async function withdrawAppeal(appealId: string) {
+  return post<ApiResponse<GradeAppeal>>(`/appeals/${appealId}/withdraw/`);
 }

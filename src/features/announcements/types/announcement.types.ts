@@ -1,18 +1,9 @@
-export interface Announcement {
-  id: string;
-  courseOfferingId: string;
-  title: string;
-  body: string;
-  isPinned: boolean;
-  publishAt: string | null;
-  expiresAt: string | null;
-  status: "DRAFT" | "PUBLISHED" | "ARCHIVED";
-  createdBy: {
-    id: string;
-    firstName: string;
-    lastName: string;
-    universityId: string;
-  } | null;
-  createdAt: string;
-  updatedAt: string;
-}
+import type { Schema } from "@/types/api.types";
+
+/**
+ * All these types are derived from the OpenAPI schema, so they can't drift
+ * out of sync with the backend.
+ */
+export type Announcement = Schema<"Announcement">;
+export type AnnouncementAuthor = Schema<"User">;
+export type AnnouncementStatus = Announcement["status"];

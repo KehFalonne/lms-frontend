@@ -50,8 +50,8 @@ function AssessmentsContent() {
         <div className="space-y-3">
           {items
             .filter((a) => {
-              // Hide CA assessments until their window opens
-              if (a.isCodeGated && a.caOpensAt) {
+              // CA assessments without attempts stay hidden until the window opens
+              if (a.isCodeGated && !a.lastAttempt && a.caOpensAt) {
                 return new Date(a.caOpensAt) <= new Date();
               }
               return true;

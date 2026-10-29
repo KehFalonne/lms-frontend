@@ -8,6 +8,8 @@ import type {
   MyAssessment,
 } from "../types/assessment.types";
 
+import type { ProctoringEvent, ProctoringEventType } from "../types/proctoring.types";
+
 export async function getMyAssessments() {
   return get<ApiResponse<MyAssessment[]>>("/my/assessments/");
 }
@@ -203,4 +205,44 @@ export async function generateAccessCode(assessmentId: string) {
 
 export async function setAccessCode(assessmentId: string, code: string) {
   return post<ApiResponse<unknown>>(`/assessments/${assessmentId}/set-code/`, { code });
+}
+
+export async function logProctoringEvent(
+  attemptId: string,
+  eventType: ProctoringEventType,
+  detail: Record<string, unknown> = {}
+) {
+  return post(`/assessment-attempts/${attemptId}/proctoring-events/`, {
+    eventType,
+    detail,
+  });
+}
+
+export async function getProctoringEvents(attemptId: string) {
+  return get<ApiResponse<ProctoringEvent[]>>(
+    `/assessment-attempts/${attemptId}/proctoring-events/`
+  );
+}
+
+export interface AssessmentAttemptRow {
+  id: string;
+  attemptNumber: number;
+  status: string;
+  startedAt: string;
+  submittedAt: string | null;
+  totalScore: string;
+  percentage: string;
+  student: {
+    id: string;
+    universityId: string;
+    firstName: string;
+    lastName: string;
+  };
+  proctoringEventCount?: number;
+}
+
+export async function listAssessmentAttempts(assessmentId: string) {
+  return get<ApiResponse<AssessmentAttemptRow[]>>(
+    `/assessments/${assessmentId}/attempts/`
+  );
 }

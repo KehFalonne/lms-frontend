@@ -7,11 +7,13 @@ import {
   ChevronLeft,
   ChevronRight,
   Clock,
+  Lock,
   Flag,
   ListChecks,
   X,
 } from "lucide-react";
-
+import { useProctoring } from "../hooks/useProctoring";
+import { ProctoringBanner } from "./proctoring-banner";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
@@ -20,6 +22,8 @@ import { cn } from "@/lib/utils/cn";
 import { useLiveAttempt, useSaveAnswer, useSubmitAttempt } from "../hooks/useAssessments";
 import { QuestionRenderer, isAnswerEmpty } from "./question-renderer";
 import type { AttemptAnswerState, AttemptLive } from "../types/assessment.types";
+import { useLockdown } from "../hooks/useLockdown";
+import { LockdownGate } from "./lockdown-gate";
 
 type SaveState = "idle" | "saving" | "saved" | "error";
 
@@ -42,9 +46,55 @@ export function LiveAttempt({ attemptId }: LiveAttemptProps) {
   const [confirmSubmit, setConfirmSubmit] = useState(false);
   const [navigatorOpen, setNavigatorOpen] = useState(false);
   const [secondsLeft, setSecondsLeft] = useState(0);
+  const [proctoringModal, setProctoringModal] = useState(false);
 
   const saveTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
   const initialized = useRef(false);
+
+  const proctoring = useProctoring({
+    attemptId,
+    enabled:
+      !!attempt &&
+      attempt.status === "IN_PROGRESS" &&
+      attempt.proctoringEnabled &&
+      !submitMutation.isPending,
+    maxViolations: attempt?.proctoringMaxViolations ?? 0,
+    onMaxReached: () => {
+      setProctoringModal(true);
+      // Auto-submit after a brief moment so the student sees the modal
+      setTimeout(() => {
+        submitMutation.mutate(undefined, {
+          onSuccess: () => {
+            router.replace(`/assessments/${attempt!.assessmentId}/result/${attempt!.id}`);
+          },
+        });
+      }, 2500);
+    },
+  });
+
+  const [lockdownEntered, setLockdownEntered] = useState(false);
+
+  const lockdown = useLockdown({
+    attemptId,
+    enabled:
+      !!attempt &&
+      attempt.status === "IN_PROGRESS" &&
+      attempt.proctoringMode === "LOCKDOWN",
+    onExitAttempted: () => {
+      // Emitted by the hook when fullscreen exits — the overlay appears
+      // via `needsRecovery`. Also log it as a proctoring violation so
+      // the lecturer sees it in the event log.
+      if (attempt?.proctoringMode === "LOCKDOWN") {
+        // Use the same logProctoringEvent path used by useProctoring
+        import("../api/assessments.api").then(({ logProctoringEvent }) => {
+          logProctoringEvent(attemptId, "FULLSCREEN_EXIT").catch(() => {});
+        });
+      }
+    },
+  });
+
+  const requiresLockdown =
+    attempt?.proctoringMode === "LOCKDOWN" && attempt?.status === "IN_PROGRESS";
 
   useEffect(() => {
     if (attempt && !initialized.current) {
@@ -157,6 +207,20 @@ export function LiveAttempt({ attemptId }: LiveAttemptProps) {
     );
   }
 
+  if (requiresLockdown && (!lockdownEntered || lockdown.needsRecovery)) {
+    return (
+      <LockdownGate
+        isRecovery={lockdownEntered && lockdown.needsRecovery}
+        enterLockdown={async () => {
+          const ok = await lockdown.enterLockdown();
+          if (ok) setLockdownEntered(true);
+          return ok;
+        }}
+        onEntered={() => setLockdownEntered(true)}
+      />
+    );
+  }
+
   const q = attempt.questions[currentIdx];
   const minutes = Math.floor(secondsLeft / 60);
   const seconds = secondsLeft % 60;
@@ -178,6 +242,12 @@ export function LiveAttempt({ attemptId }: LiveAttemptProps) {
 
           <div className="flex shrink-0 items-center gap-2">
             <SaveIndicator state={currentSaveState} />
+            {requiresLockdown && lockdown.isFullscreen && (
+              <div className="bg-success/10 text-success hidden items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium sm:flex">
+                <Lock className="h-3 w-3" />
+                Secure
+              </div>
+            )}
             <div
               className={cn(
                 "flex items-center gap-1.5 rounded-md px-2.5 py-1.5 font-mono text-sm font-semibold tabular-nums",
@@ -190,6 +260,13 @@ export function LiveAttempt({ attemptId }: LiveAttemptProps) {
           </div>
         </div>
       </div>
+
+      <ProctoringBanner
+        violations={proctoring.violations}
+        maxViolations={attempt.proctoringMaxViolations}
+        lastEvent={proctoring.lastEvent}
+        isBlocked={proctoring.isBlocked}
+      />
 
       {/* Question body */}
       <div className="flex-1 py-4">
@@ -368,6 +445,20 @@ export function LiveAttempt({ attemptId }: LiveAttemptProps) {
             </div>
           </div>
         )}
+      </Dialog>
+
+      <Dialog
+        open={proctoringModal}
+        onClose={() => {}}
+        title="Attempt submitted for integrity reasons"
+        description="You exceeded the maximum number of proctoring violations. Your attempt has been submitted automatically."
+        locked
+      >
+        <div className="border-danger/30 bg-danger/10 text-danger rounded-md border p-3 text-sm">
+          Your responses up to the point of submission have been saved and will be graded.
+          The lecturer has access to the full integrity log.
+        </div>
+        <p className="text-muted-foreground mt-3 text-xs">Submitting and redirecting…</p>
       </Dialog>
     </div>
   );

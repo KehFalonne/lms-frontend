@@ -44,6 +44,8 @@ export interface MyAssessment {
   lastAttempt: MyAssessmentLastAttempt | null;
   isCodeGated?: boolean;
   caOpensAt?: string | null;
+  caLastEntryAt?: string | null;
+  hasAccessCode?: boolean;
 }
 
 export interface AssessmentDetail {
@@ -102,6 +104,9 @@ export interface AttemptLive {
   totalPoints: string;
   questions: AttemptLiveQuestion[];
   answers: Record<string, AttemptAnswerState>;
+  proctoringEnabled: boolean;
+  proctoringMaxViolations: number;
+  proctoringMode: "LOGGING" | "LOCKDOWN";
 }
 
 export interface AttemptResult {

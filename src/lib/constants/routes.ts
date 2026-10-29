@@ -15,6 +15,7 @@ import {
   Shield,
   User,
   Users,
+  Flag,
   type LucideIcon,
 } from "lucide-react";
 
@@ -40,6 +41,7 @@ const LECTURER_NAV: NavItem[] = [
   { label: "My Courses", href: "/lecturer/courses", icon: BookOpen },
   { label: "Calendar", href: "/calendar", icon: Calendar },
   { label: "Notifications", href: "/notifications", icon: Bell },
+  { label: "Appeals", href: "/lecturer/appeals", icon: Flag },
   { label: "Profile", href: "/profile", icon: User },
 ];
 // Admin nav (used when the admin routes land in Sprint 10)

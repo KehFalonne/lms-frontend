@@ -33,3 +33,10 @@ export interface PaginatedParams {
   ordering?: string;
   [key: string]: unknown;
 }
+
+// Re-export generated schema components for convenient imports
+export type { components, paths, operations } from "./api.generated";
+
+/** Extract the type of a specific OpenAPI schema component. */
+export type Schema<K extends keyof import("./api.generated").components["schemas"]> =
+  import("./api.generated").components["schemas"][K];

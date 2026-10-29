@@ -1,13 +1,28 @@
 "use client";
-import { use } from "react";
+import { Suspense, use } from "react";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 
 import { Tabs } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useCourse } from "@/features/courses/hooks/useCourses";
 
 export default function LecturerCourseLayout({
+  children,
+  params,
+}: {
+  children: React.ReactNode;
+  params: Promise<{ courseId: string }>;
+}) {
+  return (
+    <Suspense fallback={<LayoutSkeleton />}>
+      <LayoutInner params={params}>{children}</LayoutInner>
+    </Suspense>
+  );
+}
+
+function LayoutInner({
   children,
   params,
 }: {
@@ -65,6 +80,17 @@ export default function LecturerCourseLayout({
       />
 
       {children}
+    </div>
+  );
+}
+
+function LayoutSkeleton() {
+  return (
+    <div className="space-y-4">
+      <Skeleton className="h-4 w-24" />
+      <Skeleton className="h-32 w-full" />
+      <Skeleton className="h-10 w-full" />
+      <Skeleton className="h-64 w-full" />
     </div>
   );
 }

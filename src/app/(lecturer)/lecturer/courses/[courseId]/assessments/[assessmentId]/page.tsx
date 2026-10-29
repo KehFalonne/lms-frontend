@@ -89,12 +89,18 @@ function DetailContent({
 
   return (
     <div>
-      <Link
-        href={`/lecturer/courses/${courseId}/assessments`}
-        className="text-muted-foreground hover:text-foreground mb-4 inline-flex items-center gap-1 text-sm"
-      >
-        <ArrowLeft className="h-3.5 w-3.5" /> Back to assessments
-      </Link>
+      <div className="mb-4 flex items-center justify-between gap-3">
+        <Link
+          href={`/lecturer/courses/${courseId}/assessments`}
+          className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1 text-sm"
+        >
+          <ArrowLeft className="h-3.5 w-3.5" /> Back to assessments
+        </Link>
+
+        <Link href={`/lecturer/courses/${courseId}/assessments/${assessmentId}/attempts`}>
+          <Button variant="outline">View attempts</Button>
+        </Link>
+      </div>
 
       <Card className="mb-6">
         <CardContent className="p-5">

@@ -24,6 +24,7 @@ export interface PublishedGradeItem {
   percentage: string | null;
   letterGrade: string;
   feedback: string;
+  gradeId: string;
 }
 
 export interface CourseGradeDetail {
@@ -77,4 +78,33 @@ export interface GradeCategory {
 export interface CategoryWeightInput {
   name: string;
   weight: string;
+}
+
+export type AppealStatus =
+  "PENDING" | "UNDER_REVIEW" | "APPROVED" | "DENIED" | "WITHDRAWN";
+
+export interface GradeAppeal {
+  id: string;
+  grade: string;
+  gradeItemName: string;
+  maxScore: string;
+  courseOfferingId: string;
+  student: {
+    id: string;
+    universityId: string;
+    firstName: string;
+    lastName: string;
+  };
+  reason: string;
+  status: AppealStatus;
+  originalScore: string | null;
+  resolvedScore: string | null;
+  reviewer: {
+    id: string;
+    firstName: string;
+    lastName: string;
+  } | null;
+  reviewerNotes: string;
+  createdAt: string;
+  resolvedAt: string | null;
 }

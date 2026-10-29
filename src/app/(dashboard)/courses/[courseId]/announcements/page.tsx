@@ -1,9 +1,13 @@
 "use client";
-import { use } from "react";
+
+import { use, useEffect } from "react";
 import { Megaphone } from "lucide-react";
 
 import { AnnouncementCard } from "@/features/announcements/components/announcement-card";
-import { useCourseAnnouncements } from "@/features/announcements/hooks/useAnnouncements";
+import {
+  useCourseAnnouncements,
+  useMarkAnnouncementRead,
+} from "@/features/announcements/hooks/useAnnouncements";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ErrorState } from "@/components/ui/error-state";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -16,7 +20,14 @@ export default function CourseAnnouncementsPage({
   const { courseId } = use(params);
   const { data, isLoading, isError, refetch } = useCourseAnnouncements(courseId);
   const announcements = data?.data ?? [];
+  const markRead = useMarkAnnouncementRead();
 
+  useEffect(() => {
+    if (!announcements.length) return;
+    // fire-and-forget for each unread
+    announcements.filter((a) => !a.isRead).forEach((a) => markRead.mutate(a.id));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [announcements.length]);
   if (isLoading) {
     return (
       <div className="space-y-3">
