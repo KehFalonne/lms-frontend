@@ -10,6 +10,7 @@ export type QuestionType =
 
 export type AttemptStatus =
   | "IN_PROGRESS"
+  | "PAUSED"
   | "SUBMITTED"
   | "AUTO_GRADED"
   | "MANUAL_GRADING"
@@ -72,6 +73,11 @@ export interface AssessmentDetail {
   caLastEntryAt?: string | null;
   serveQuestionCount?: number | null;
   randomizeQuestionOrder?: boolean;
+  proctoringEnabled?: boolean;
+  proctoringMaxViolations?: number;
+  proctoringMode?: "LOGGING" | "LOCKDOWN";
+  proctoringEnforcement?: "REVIEW_ONLY" | "AUTO_SUBMIT";
+  invigilatorId?: string | null;
 }
 
 export interface AttemptLiveQuestion {
@@ -107,6 +113,13 @@ export interface AttemptLive {
   proctoringEnabled: boolean;
   proctoringMaxViolations: number;
   proctoringMode: "LOGGING" | "LOCKDOWN";
+  proctoringEnforcement: "REVIEW_ONLY" | "AUTO_SUBMIT";
+  proctoringViolationCount: number;
+  caInvigilatorMessage: {
+    id: string;
+    message: string;
+    createdAt: string;
+  } | null;
 }
 
 export interface AttemptResult {

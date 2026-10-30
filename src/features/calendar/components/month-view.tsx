@@ -94,11 +94,20 @@ export function MonthView({
           const inMonth = isSameMonth(day, cursor);
 
           return (
-            <button
+            <div
               key={day.toISOString()}
               onClick={() => onSelect(day)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" || event.key === " ") {
+                  event.preventDefault();
+                  onSelect(day);
+                }
+              }}
+              role="gridcell"
+              aria-selected={isSel}
+              tabIndex={0}
               className={cn(
-                "bg-background hover:bg-surface min-h-[80px] p-1.5 text-left align-top transition-colors sm:min-h-[100px] sm:p-2",
+                "bg-background hover:bg-surface min-h-[80px] cursor-pointer p-1.5 text-left align-top transition-colors focus-visible:ring-2 focus-visible:ring-inset sm:min-h-[100px] sm:p-2",
                 !inMonth && "opacity-40",
                 isSel && "ring-primary ring-2 ring-inset"
               )}
@@ -137,7 +146,7 @@ export function MonthView({
                   </div>
                 )}
               </div>
-            </button>
+            </div>
           );
         })}
       </div>

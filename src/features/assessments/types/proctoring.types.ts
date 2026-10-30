@@ -5,6 +5,7 @@ export type ProctoringEventType =
   | "CONTEXT_MENU"
   | "COPY"
   | "PASTE"
+  | "HEARTBEAT_GAP"
   | "OTHER";
 
 export interface ProctoringEvent {
@@ -24,5 +25,6 @@ export const PROCTORING_LABELS: Record<ProctoringEventType, string> = {
   CONTEXT_MENU: "Right-clicked",
   COPY: "Attempted copy",
   PASTE: "Attempted paste",
+  HEARTBEAT_GAP: "Heartbeat gap detected",
   OTHER: "Other",
 };

@@ -9,6 +9,7 @@ interface Props {
   maxViolations: number;
   lastEvent: ProctoringEventType | null;
   isBlocked: boolean;
+  reportError?: string | null;
 }
 
 const ICONS: Record<ProctoringEventType, typeof AlertTriangle> = {
@@ -18,6 +19,7 @@ const ICONS: Record<ProctoringEventType, typeof AlertTriangle> = {
   CONTEXT_MENU: MousePointer2Off,
   COPY: MousePointer2Off,
   PASTE: MousePointer2Off,
+  HEARTBEAT_GAP: EyeOff,
   OTHER: AlertTriangle,
 };
 
@@ -28,6 +30,7 @@ const MESSAGES: Record<ProctoringEventType, string> = {
   CONTEXT_MENU: "Right-click is disabled during proctored exams.",
   COPY: "Copying is disabled during proctored exams.",
   PASTE: "Pasting is disabled during proctored exams.",
+  HEARTBEAT_GAP: "The exam connection was interrupted for too long.",
   OTHER: "Unusual activity was detected.",
 };
 
@@ -36,8 +39,9 @@ export function ProctoringBanner({
   maxViolations,
   lastEvent,
   isBlocked,
+  reportError,
 }: Props) {
-  if (violations === 0) return null;
+  if (violations === 0 && !reportError) return null;
 
   const remaining = maxViolations > 0 ? Math.max(0, maxViolations - violations) : null;
   const danger = isBlocked || (remaining !== null && remaining <= 1);
@@ -64,8 +68,11 @@ export function ProctoringBanner({
             {message}
           </p>
           <p className="text-muted-foreground text-xs">
-            {violations} violation{violations === 1 ? "" : "s"} logged
-            {remaining !== null && ` · ${remaining} remaining before auto-submit`}
+            {reportError
+              ? `Unable to record the latest event: ${reportError}`
+              : `${violations} violation${violations === 1 ? "" : "s"} logged${
+                  remaining !== null ? ` · ${remaining} remaining before auto-submit` : ""
+                }`}
           </p>
         </div>
       </div>

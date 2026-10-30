@@ -2,6 +2,7 @@
 import { use, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useQuery } from "@tanstack/react-query";
 import { ArrowLeft, FileQuestion, KeyRound, Plus, Send } from "lucide-react";
 
 import { AuthGate } from "@/components/layout/auth-gate";
@@ -26,6 +27,7 @@ import {
 import { LECTURER_ROLES } from "@/lib/constants/routes";
 import { formatDateTime } from "@/lib/utils/format";
 import { Input } from "@/components/ui/input";
+import { listCAInvigilators } from "@/features/assessments/api/assessments.api";
 
 export default function LecturerAssessmentDetailPage({
   params,
@@ -58,6 +60,11 @@ function DetailContent({
   const [confirmPublish, setConfirmPublish] = useState(false);
 
   const a = assessmentQ.data?.data;
+  const invigilatorsQ = useQuery({
+    queryKey: ["ca-invigilators"],
+    queryFn: listCAInvigilators,
+    staleTime: 60_000,
+  });
   const questions = questionsQ.data?.data ?? [];
   const banks = banksQ.data?.data ?? [];
   const firstBankId = banks[0]?.id ?? "";
@@ -269,6 +276,101 @@ function DetailContent({
                 </p>
               </div>
             )}
+          </div>
+
+          <div className="border-border bg-surface/50 rounded-md border p-3">
+            <label className="mb-1.5 block text-sm font-medium">CA invigilator</label>
+            <select
+              value={a.invigilatorId ?? ""}
+              onChange={(e) => update.mutate({ invigilatorId: e.target.value || null })}
+              className="border-input bg-background h-10 w-full rounded-md border px-3 text-sm"
+            >
+              <option value="">Not assigned</option>
+              {(invigilatorsQ.data?.data ?? []).map((staff) => (
+                <option key={staff.id} value={staff.id}>
+                  {staff.firstName} {staff.lastName} ({staff.universityId})
+                </option>
+              ))}
+            </select>
+            <p className="text-muted-foreground mt-1 text-xs">
+              The assigned staff member oversees students and generates the CA code.
+              Administrators can always generate a replacement code.
+            </p>
+          </div>
+
+          <div className="border-border bg-surface/50 rounded-md border p-3">
+            <div className="mb-3">
+              <h4 className="text-sm font-semibold">Proctoring</h4>
+              <p className="text-muted-foreground mt-1 text-xs">
+                Records browser integrity events. Auto-submit is enforced by the server
+                when the configured threshold is reached.
+              </p>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <label className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={a.proctoringEnabled ?? false}
+                  onChange={(e) => update.mutate({ proctoringEnabled: e.target.checked })}
+                  className="h-4 w-4"
+                />
+                Enable proctoring
+              </label>
+              <div>
+                <label className="mb-1.5 block text-sm font-medium">
+                  Enforcement mode
+                </label>
+                <select
+                  value={a.proctoringEnforcement ?? "REVIEW_ONLY"}
+                  onChange={(e) =>
+                    update.mutate({
+                      proctoringEnforcement: e.target.value as
+                        "REVIEW_ONLY" | "AUTO_SUBMIT",
+                    })
+                  }
+                  className="border-input bg-background h-10 w-full rounded-md border px-3 text-sm"
+                  disabled={!a.proctoringEnabled}
+                >
+                  <option value="REVIEW_ONLY">Review only</option>
+                  <option value="AUTO_SUBMIT">Automatically submit</option>
+                </select>
+              </div>
+              <div>
+                <label className="mb-1.5 block text-sm font-medium">
+                  Maximum violations
+                </label>
+                <Input
+                  type="number"
+                  min={0}
+                  value={a.proctoringMaxViolations ?? 0}
+                  onChange={(e) =>
+                    update.mutate({
+                      proctoringMaxViolations: Math.max(0, Number(e.target.value)),
+                    })
+                  }
+                  disabled={!a.proctoringEnabled}
+                />
+                <p className="text-muted-foreground mt-1 text-xs">
+                  Use 0 to record events without automatic enforcement.
+                </p>
+              </div>
+              <div>
+                <label className="mb-1.5 block text-sm font-medium">Browser mode</label>
+                <select
+                  value={a.proctoringMode ?? "LOGGING"}
+                  onChange={(e) =>
+                    update.mutate({
+                      proctoringMode: e.target.value as "LOGGING" | "LOCKDOWN",
+                    })
+                  }
+                  className="border-input bg-background h-10 w-full rounded-md border px-3 text-sm"
+                  disabled={!a.proctoringEnabled}
+                >
+                  <option value="LOGGING">Logging only</option>
+                  <option value="LOCKDOWN">Strict lockdown</option>
+                </select>
+              </div>
+            </div>
           </div>
         </CardContent>
       </Card>

@@ -68,6 +68,10 @@ export interface CreateAssessmentPayload {
   showResults?: boolean;
   showCorrectAnswers?: boolean;
   passingScore?: string;
+  proctoringEnabled?: boolean;
+  proctoringMaxViolations?: number;
+  proctoringMode?: "LOGGING" | "LOCKDOWN";
+  proctoringEnforcement?: "REVIEW_ONLY" | "AUTO_SUBMIT";
 }
 
 export async function createAssessment(
@@ -212,7 +216,16 @@ export async function logProctoringEvent(
   eventType: ProctoringEventType,
   detail: Record<string, unknown> = {}
 ) {
-  return post(`/assessment-attempts/${attemptId}/proctoring-events/`, {
+  return post<
+    ApiResponse<{
+      eventId: string;
+      violationCount: number;
+      maxViolations: number;
+      thresholdReached: boolean;
+      autoSubmitted: boolean;
+      attemptStatus: string;
+    }>
+  >(`/assessment-attempts/${attemptId}/proctoring-events/`, {
     eventType,
     detail,
   });
@@ -244,5 +257,55 @@ export interface AssessmentAttemptRow {
 export async function listAssessmentAttempts(assessmentId: string) {
   return get<ApiResponse<AssessmentAttemptRow[]>>(
     `/assessments/${assessmentId}/attempts/`
+  );
+}
+
+export interface CAMonitoringStudent {
+  id: string;
+  student: {
+    id: string;
+    universityId: string;
+    firstName: string;
+    lastName: string;
+  };
+  status: string;
+  startedAt: string;
+  lastHeartbeatAt: string | null;
+  violationCount: number;
+  latestEvent: { type: string; createdAt: string } | null;
+}
+
+export async function getCAMonitoring(assessmentId: string) {
+  return get<
+    ApiResponse<{
+      assessment: { title: string; hasAccessCode?: boolean };
+      invigilator: { id: string; name: string } | null;
+      students: CAMonitoringStudent[];
+    }>
+  >(`/assessments/${assessmentId}/ca-monitoring/`);
+}
+
+export interface CAInvigilator {
+  id: string;
+  universityId: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+}
+
+export async function listCAInvigilators() {
+  return get<ApiResponse<CAInvigilator[]>>("/ca-invigilators/");
+}
+
+export async function applyCAInvigilatorAction(
+  assessmentId: string,
+  attemptId: string,
+  action:
+    "MESSAGE" | "PAUSE" | "RESUME" | "FORCE_SUBMIT" | "TERMINATE" | "RESET_LOCKDOWN",
+  message?: string
+) {
+  return post<ApiResponse<{ attemptId: string; status: string }>>(
+    `/assessments/${assessmentId}/ca-monitoring/`,
+    { attemptId, action, ...(message ? { message } : {}) }
   );
 }

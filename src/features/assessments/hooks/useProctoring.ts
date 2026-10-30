@@ -7,7 +7,8 @@ import type { ProctoringEventType } from "../types/proctoring.types";
 interface UseProctoringOptions {
   attemptId: string;
   enabled: boolean;
-  maxViolations?: number; // 0 or undefined = log only
+  initialViolations?: number;
+  enforcement?: "REVIEW_ONLY" | "AUTO_SUBMIT";
   onMaxReached?: () => void;
 }
 
@@ -15,6 +16,7 @@ interface ProctoringState {
   violations: number;
   lastEvent: ProctoringEventType | null;
   isBlocked: boolean;
+  reportError: string | null;
 }
 
 const DEBOUNCE_MS = 3000; // was 1000 — 3s window for dedupe
@@ -22,14 +24,16 @@ const DEBOUNCE_MS = 3000; // was 1000 — 3s window for dedupe
 export function useProctoring({
   attemptId,
   enabled,
-  maxViolations = 0,
+  initialViolations = 0,
+  enforcement = "REVIEW_ONLY",
   onMaxReached,
 }: UseProctoringOptions): ProctoringState {
-  const [violations, setViolations] = useState(0);
+  const [violations, setViolations] = useState(initialViolations);
   const [lastEvent, setLastEvent] = useState<ProctoringEventType | null>(null);
   const [isBlocked, setIsBlocked] = useState(false);
+  const [reportError, setReportError] = useState<string | null>(null);
 
-  const violationsRef = useRef(0);
+  const violationsRef = useRef(initialViolations);
   const lastEventTsRef = useRef(0);
   const blockedRef = useRef(false);
   const attentionLossRef = useRef(false); // dedupe tab_switch + blur
@@ -40,26 +44,38 @@ export function useProctoring({
   });
 
   const emit = useCallback(
-    (eventType: ProctoringEventType, detail: Record<string, unknown> = {}) => {
+    async (eventType: ProctoringEventType, detail: Record<string, unknown> = {}) => {
       if (!enabled || blockedRef.current) return;
 
       const now = Date.now();
       if (now - lastEventTsRef.current < DEBOUNCE_MS) return;
       lastEventTsRef.current = now;
 
-      logProctoringEvent(attemptId, eventType, detail).catch(() => {});
+      try {
+        const response = await logProctoringEvent(attemptId, eventType, detail);
+        const result = response.data;
+        violationsRef.current = result.violationCount;
+        setViolations(result.violationCount);
+        setLastEvent(eventType);
+        setReportError(null);
 
-      violationsRef.current += 1;
-      setViolations(violationsRef.current);
-      setLastEvent(eventType);
-
-      if (maxViolations > 0 && violationsRef.current >= maxViolations) {
-        blockedRef.current = true;
-        setIsBlocked(true);
-        onMaxRef.current?.();
+        if (
+          result.thresholdReached &&
+          enforcement === "AUTO_SUBMIT" &&
+          result.autoSubmitted
+        ) {
+          blockedRef.current = true;
+          setIsBlocked(true);
+          onMaxRef.current?.();
+        }
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : "Could not report activity.";
+        setReportError(message);
+        console.warn("[proctoring] event report failed:", message);
       }
     },
-    [enabled, attemptId, maxViolations]
+    [enabled, attemptId, enforcement]
   );
 
   useEffect(() => {
@@ -129,5 +145,5 @@ export function useProctoring({
     };
   }, [enabled, emit]);
 
-  return { violations, lastEvent, isBlocked };
+  return { violations, lastEvent, isBlocked, reportError };
 }

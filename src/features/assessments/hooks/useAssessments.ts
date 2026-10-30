@@ -52,6 +52,7 @@ export function useLiveAttempt(attemptId: string | null) {
     queryKey: ["attempt-live", attemptId],
     queryFn: () => getLiveAttempt(attemptId!),
     enabled: !!attemptId,
+    refetchInterval: 3000,
     staleTime: 0, // always refetch — it's live state
     gcTime: 0,
   });

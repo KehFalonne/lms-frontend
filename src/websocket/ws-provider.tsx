@@ -97,6 +97,17 @@ export function WebSocketProvider({ children }: { children: React.ReactNode }) {
           break;
         }
 
+        case "ca.monitoring_updated": {
+          queryClient.invalidateQueries({ queryKey: ["ca-monitoring"] });
+          queryClient.invalidateQueries({ queryKey: ["attempt-live"] });
+          if (typeof window !== "undefined") {
+            window.dispatchEvent(
+              new CustomEvent("ca:monitoring", { detail: msg.payload })
+            );
+          }
+          break;
+        }
+
         default:
           break;
       }

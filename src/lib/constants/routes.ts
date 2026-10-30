@@ -55,6 +55,7 @@ const ADMIN_NAV: NavItem[] = [
   { label: "Courses", href: "/admin/courses", icon: BookOpen },
   { label: "Academic Years", href: "/admin/academic-years", icon: Calendar },
   { label: "Reports", href: "/admin/reports", icon: BarChart3 },
+  { label: "CA Sessions", href: "/admin/ca-sessions", icon: ClipboardList },
   { label: "Calendar", href: "/calendar", icon: Calendar },
   { label: "Audit Logs", href: "/admin/audit-logs", icon: ScrollText },
   { label: "Settings", href: "/admin/settings", icon: Settings },

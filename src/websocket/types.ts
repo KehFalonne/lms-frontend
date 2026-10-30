@@ -3,7 +3,8 @@ export type WSEventType =
   | "notification.created"
   | "grade.published"
   | "announcement.published"
-  | "discussion.post_created";
+  | "discussion.post_created"
+  | "ca.monitoring_updated";
 
 export interface WSMessage<T = unknown> {
   type: WSEventType;

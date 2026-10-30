@@ -7,7 +7,6 @@ export type WSStatus = "disconnected" | "connecting" | "connected";
 type StatusListener = (s: WSStatus) => void;
 
 const MAX_BACKOFF_MS = 30_000;
-const ERROR_LOG_THROTTLE_MS = 30_000;
 
 class WebSocketManager {
   private socket: WebSocket | null = null;
@@ -20,7 +19,7 @@ class WebSocketManager {
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
   private status: WSStatus = "disconnected";
   private tokenChangeListener: (() => void) | null = null;
-  private lastErrorLogAt = 0;
+  private connectionWarningShown = false;
 
   private setStatus(next: WSStatus) {
     if (this.status === next) return;
@@ -108,6 +107,7 @@ class WebSocketManager {
 
     this.socket.onopen = () => {
       this.reconnectAttempt = 0;
+      this.connectionWarningShown = false;
       console.log("[ws] open");
       this.setStatus("connected");
     };
@@ -130,9 +130,8 @@ class WebSocketManager {
     };
 
     this.socket.onerror = (evt) => {
-      const now = Date.now();
-      if (now - this.lastErrorLogAt < ERROR_LOG_THROTTLE_MS) return;
-      this.lastErrorLogAt = now;
+      if (this.connectionWarningShown) return;
+      this.connectionWarningShown = true;
       console.warn(
         "[ws] notifications unavailable; retrying in the background",
         "Check that the backend ASGI server is running."
@@ -165,6 +164,7 @@ class WebSocketManager {
   disconnect() {
     console.log("[ws] disconnect requested");
     this.shouldReconnect = false;
+    this.connectionWarningShown = false;
     if (this.reconnectTimer) {
       clearTimeout(this.reconnectTimer);
       this.reconnectTimer = null;

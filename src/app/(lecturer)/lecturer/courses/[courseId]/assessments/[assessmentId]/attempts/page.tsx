@@ -56,7 +56,12 @@ function AttemptsContent({
         <ArrowLeft className="h-3.5 w-3.5" /> Back to assessment
       </Link>
 
-      <PageHeader title="Attempts" description={`${attempts.length} total`} />
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <PageHeader title="Attempts" description={`${attempts.length} total`} />
+        <Link href={`/lecturer/courses/${courseId}/assessments/${assessmentId}/monitor`}>
+          <Button size="sm">Monitor CA</Button>
+        </Link>
+      </div>
 
       {isLoading && (
         <div className="space-y-2">

@@ -10,6 +10,7 @@ import {
   Lock,
   Flag,
   ListChecks,
+  MessageSquare,
   X,
 } from "lucide-react";
 import { useProctoring } from "../hooks/useProctoring";
@@ -47,6 +48,8 @@ export function LiveAttempt({ attemptId }: LiveAttemptProps) {
   const [navigatorOpen, setNavigatorOpen] = useState(false);
   const [secondsLeft, setSecondsLeft] = useState(0);
   const [proctoringModal, setProctoringModal] = useState(false);
+  const [invigilatorMessage, setInvigilatorMessage] = useState<string | null>(null);
+  const lastMessageId = useRef<string | null>(null);
 
   const saveTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
   const initialized = useRef(false);
@@ -58,16 +61,16 @@ export function LiveAttempt({ attemptId }: LiveAttemptProps) {
       attempt.status === "IN_PROGRESS" &&
       attempt.proctoringEnabled &&
       !submitMutation.isPending,
-    maxViolations: attempt?.proctoringMaxViolations ?? 0,
+    initialViolations: attempt?.proctoringViolationCount ?? 0,
+    enforcement: attempt?.proctoringEnforcement ?? "REVIEW_ONLY",
     onMaxReached: () => {
       setProctoringModal(true);
-      // Auto-submit after a brief moment so the student sees the modal
+      // The server has already submitted the attempt. Only navigate after
+      // giving the student a short explanation.
       setTimeout(() => {
-        submitMutation.mutate(undefined, {
-          onSuccess: () => {
-            router.replace(`/assessments/${attempt!.assessmentId}/result/${attempt!.id}`);
-          },
-        });
+        if (attempt) {
+          router.replace(`/assessments/${attempt.assessmentId}/result/${attempt.id}`);
+        }
       }, 2500);
     },
   });
@@ -78,18 +81,19 @@ export function LiveAttempt({ attemptId }: LiveAttemptProps) {
     attemptId,
     enabled:
       !!attempt &&
-      attempt.status === "IN_PROGRESS" &&
+      (attempt.status === "IN_PROGRESS" || attempt.status === "PAUSED") &&
       attempt.proctoringMode === "LOCKDOWN",
     onExitAttempted: () => {
-      // Emitted by the hook when fullscreen exits — the overlay appears
-      // via `needsRecovery`. Also log it as a proctoring violation so
-      // the lecturer sees it in the event log.
-      if (attempt?.proctoringMode === "LOCKDOWN") {
-        // Use the same logProctoringEvent path used by useProctoring
-        import("../api/assessments.api").then(({ logProctoringEvent }) => {
-          logProctoringEvent(attemptId, "FULLSCREEN_EXIT").catch(() => {});
-        });
-      }
+      // useProctoring records the fullscreen event; this callback only opens
+      // the recovery gate maintained by useLockdown.
+    },
+    onServerSubmitted: () => {
+      setProctoringModal(true);
+      setTimeout(() => {
+        if (attempt) {
+          router.replace(`/assessments/${attempt.assessmentId}/result/${attempt.id}`);
+        }
+      }, 2500);
     },
   });
 
@@ -102,6 +106,34 @@ export function LiveAttempt({ attemptId }: LiveAttemptProps) {
       initialized.current = true;
     }
   }, [attempt]);
+
+  useEffect(() => {
+    const message = attempt?.caInvigilatorMessage;
+    if (!message || message.id === lastMessageId.current) return;
+    lastMessageId.current = message.id;
+    setInvigilatorMessage(message.message);
+  }, [attempt?.caInvigilatorMessage]);
+
+  useEffect(() => {
+    const onMonitoringAction = (event: Event) => {
+      const detail = (
+        event as CustomEvent<{
+          attemptId?: string;
+          action?: string;
+          message?: string;
+        }>
+      ).detail;
+      if (detail.attemptId !== attemptId) return;
+      if (detail.action === "RESET_LOCKDOWN") {
+        setLockdownEntered(false);
+      }
+      if (detail.action === "MESSAGE" && detail.message) {
+        setInvigilatorMessage(detail.message);
+      }
+    };
+    window.addEventListener("ca:monitoring", onMonitoringAction);
+    return () => window.removeEventListener("ca:monitoring", onMonitoringAction);
+  }, [attemptId]);
 
   useEffect(() => {
     if (!attempt?.expiresAt) return;
@@ -126,7 +158,7 @@ export function LiveAttempt({ attemptId }: LiveAttemptProps) {
   }, [attempt?.expiresAt]);
 
   useEffect(() => {
-    if (attempt && attempt.status !== "IN_PROGRESS") {
+    if (attempt && !["IN_PROGRESS", "PAUSED"].includes(attempt.status)) {
       router.replace(`/assessments/${attempt.assessmentId}/result/${attempt.id}`);
     }
   }, [attempt, router]);
@@ -207,6 +239,20 @@ export function LiveAttempt({ attemptId }: LiveAttemptProps) {
     );
   }
 
+  if (attempt.status === "PAUSED") {
+    return (
+      <div className="flex min-h-[60vh] items-center justify-center px-4 text-center">
+        <Card className="max-w-md p-6">
+          <h2 className="text-lg font-semibold">Your CA attempt is paused</h2>
+          <p className="text-muted-foreground mt-2 text-sm">
+            The invigilator has paused this attempt. Your answers are preserved. You can
+            continue when the invigilator resumes the session.
+          </p>
+        </Card>
+      </div>
+    );
+  }
+
   if (requiresLockdown && (!lockdownEntered || lockdown.needsRecovery)) {
     return (
       <LockdownGate
@@ -266,6 +312,7 @@ export function LiveAttempt({ attemptId }: LiveAttemptProps) {
         maxViolations={attempt.proctoringMaxViolations}
         lastEvent={proctoring.lastEvent}
         isBlocked={proctoring.isBlocked}
+        reportError={proctoring.reportError}
       />
 
       {/* Question body */}
@@ -445,6 +492,24 @@ export function LiveAttempt({ attemptId }: LiveAttemptProps) {
             </div>
           </div>
         )}
+      </Dialog>
+
+      <Dialog
+        open={invigilatorMessage !== null}
+        onClose={() => setInvigilatorMessage(null)}
+        title="Message from your CA invigilator"
+        description="Please read and acknowledge this message before continuing."
+        locked
+        footer={
+          <Button onClick={() => setInvigilatorMessage(null)}>Acknowledge message</Button>
+        }
+      >
+        <div className="border-primary/30 bg-primary/10 text-foreground rounded-md border p-4">
+          <div className="flex items-start gap-3">
+            <MessageSquare className="text-primary mt-0.5 h-5 w-5 shrink-0" />
+            <p className="text-sm whitespace-pre-wrap">{invigilatorMessage}</p>
+          </div>
+        </div>
       </Dialog>
 
       <Dialog
