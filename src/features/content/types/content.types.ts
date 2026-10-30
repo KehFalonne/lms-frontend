@@ -23,6 +23,30 @@ export interface ModuleWithContent {
   contentItems: ContentItemSummary[];
 }
 
+export interface CourseModule {
+  id: string;
+  title: string;
+  description: string;
+  position: number;
+  availabilityStart: string | null;
+  availabilityEnd: string | null;
+  isPublished: boolean;
+  contentCount: number;
+}
+
+export interface ManageContentItem {
+  id: string;
+  title: string;
+  contentType: ContentType;
+  description: string;
+  body: string;
+  externalUrl: string;
+  fileId: string | null;
+  position: number;
+  isRequired: boolean;
+  isPublished: boolean;
+}
+
 export interface ContentItemDetail {
   id: string;
   courseModuleId: string;

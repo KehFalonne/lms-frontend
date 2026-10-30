@@ -70,6 +70,7 @@ function LayoutInner({
       <Tabs
         tabs={[
           { label: "Overview", href: base, exact: true },
+          { label: "Content", href: `${base}/content` },
           { label: "Assignments", href: `${base}/assignments` },
           { label: "Assessments", href: `${base}/assessments` },
           { label: "Announcements", href: `${base}/announcements` },

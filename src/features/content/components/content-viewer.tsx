@@ -3,6 +3,7 @@ import { useEffect } from "react";
 import { CheckCircle2, Download, ExternalLink, FileText, PlayCircle } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { downloadFile } from "@/features/files/api/files.api";
 import { useMarkProgress } from "../hooks/useContent";
 import type { ContentItemDetail, ContentType } from "../types/content.types";
 
@@ -132,7 +133,7 @@ function ContentBody({ item }: { item: ContentItemDetail }) {
             type="button"
             onClick={() => {
               if (item.fileId) {
-                window.open(`/api/v1/files/${item.fileId}/download-url/`, "_blank");
+                void downloadFile(item.fileId);
               }
             }}
             disabled={!item.fileId}
