@@ -42,6 +42,16 @@ export interface ManageContentItem {
   body: string;
   externalUrl: string;
   fileId: string | null;
+  fileName?: string | null;
+  fileSizeBytes?: number | null;
+  fileMimeType?: string | null;
+  pdfAccessibilityWarning?: string | null;
+  pdfVersions?: {
+    versionNumber: number;
+    fileName: string;
+    fileSizeBytes: number | null;
+    createdAt: string;
+  }[];
   position: number;
   isRequired: boolean;
   isPublished: boolean;
@@ -56,6 +66,16 @@ export interface ContentItemDetail {
   body: string;
   externalUrl: string;
   fileId: string | null;
+  fileName?: string | null;
+  fileSizeBytes?: number | null;
+  fileMimeType?: string | null;
+  pdfAccessibilityWarning?: string | null;
+  pdfVersions?: {
+    versionNumber: number;
+    fileName: string;
+    fileSizeBytes: number | null;
+    createdAt: string;
+  }[];
   position: number;
   isRequired: boolean;
   isPublished: boolean;

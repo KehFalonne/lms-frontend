@@ -132,7 +132,7 @@ function ContentBody({
   const externalUrl =
     item.contentType === "VIDEO"
       ? (fileUrl ?? normalizeVideoUrl(item.externalUrl))
-      : getSafeExternalUrl(item.externalUrl);
+      : (fileUrl ?? getSafeExternalUrl(item.externalUrl));
 
   switch (item.contentType) {
     case "TEXT":
@@ -199,6 +199,49 @@ function ContentBody({
       );
 
     case "PDF":
+      return externalUrl ? (
+        <div className="space-y-3">
+          {item.fileName && (
+            <p className="text-muted-foreground text-xs">
+              {item.fileName}
+              {item.fileSizeBytes ? ` · ${formatBytes(item.fileSizeBytes)}` : ""}
+            </p>
+          )}
+          <div className="border-border hidden h-[70vh] min-h-[480px] overflow-hidden rounded-md border bg-slate-100 sm:block">
+            <iframe src={externalUrl} title={item.title} className="h-full w-full" />
+          </div>
+          <div className="border-border bg-muted/30 rounded-md border p-4 text-sm sm:hidden">
+            <p className="font-medium">PDF preview</p>
+            <p className="text-muted-foreground mt-1">
+              Open the PDF in a new tab for the best mobile reading experience.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              type="button"
+              onClick={() => window.open(externalUrl, "_blank", "noopener,noreferrer")}
+            >
+              <ExternalLink className="h-4 w-4" />
+              Open PDF
+            </Button>
+            {item.fileId && (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => void downloadFile(item.fileId!)}
+              >
+                <Download className="h-4 w-4" />
+                Download PDF
+              </Button>
+            )}
+          </div>
+        </div>
+      ) : (
+        <p className="text-muted-foreground text-sm">
+          No PDF file or valid PDF URL is available.
+        </p>
+      );
+
     case "DOCUMENT":
     case "FILE":
       return (
@@ -244,6 +287,12 @@ function ContentBody({
         />
       );
   }
+}
+
+function formatBytes(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
 function getSafeExternalUrl(value: string | null | undefined): string | null {

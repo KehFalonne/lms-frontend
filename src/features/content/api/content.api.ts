@@ -44,6 +44,8 @@ export async function getLecturerContentProgress(offeringId: string) {
         startedAt: string | null;
         completedAt: string | null;
         lastAccessedAt: string | null;
+        opened: boolean;
+        downloaded: boolean;
       }[];
       academicGrading: { enabled: boolean; message: string };
     }>

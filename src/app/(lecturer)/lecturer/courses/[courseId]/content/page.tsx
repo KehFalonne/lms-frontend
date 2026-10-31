@@ -179,6 +179,10 @@ function ModuleCard({ module, courseId }: { module: CourseModule; courseId: stri
       setFormError("Paste a video URL or upload a video file.");
       return;
     }
+    if (form.contentType === "PDF" && !externalUrl && !uploadedFileId) {
+      setFormError("Upload a PDF file or provide a PDF URL.");
+      return;
+    }
     setFormError("");
     create.mutate(
       {
@@ -360,12 +364,14 @@ function ModuleCard({ module, courseId }: { module: CourseModule; courseId: stri
               accept={
                 form.contentType === "VIDEO"
                   ? "video/mp4,video/webm,video/ogg,video/quicktime"
-                  : undefined
+                  : form.contentType === "PDF"
+                    ? "application/pdf"
+                    : undefined
               }
               maxFiles={1}
             />
           )}
-          {["VIDEO", "AUDIO", "LINK", "EMBED"].includes(form.contentType) && (
+          {["VIDEO", "AUDIO", "PDF", "LINK", "EMBED"].includes(form.contentType) && (
             <Input
               value={form.externalUrl}
               onChange={(e) => setForm({ ...form, externalUrl: e.target.value })}
@@ -401,6 +407,11 @@ function MaterialRow({ item, courseId }: { item: ManageContentItem; courseId: st
     body: item.body,
     externalUrl: item.externalUrl,
     fileId: item.fileId ?? undefined,
+    fileName: item.fileName,
+    fileSizeBytes: item.fileSizeBytes,
+    fileMimeType: item.fileMimeType,
+    pdfAccessibilityWarning: item.pdfAccessibilityWarning,
+    pdfVersions: item.pdfVersions,
     isRequired: item.isRequired,
   });
   const [files, setFiles] = useState<UploadedFile[]>([]);
@@ -467,7 +478,28 @@ function MaterialRow({ item, courseId }: { item: ManageContentItem; courseId: st
                     setFormError("Enter a valid HTTP(S) URL.");
                     return;
                   }
+                  const uploadedFileId = files.find(
+                    (file) => file.status === "done"
+                  )?.fileId;
+                  if (
+                    form.contentType === "PDF" &&
+                    !form.externalUrl.trim() &&
+                    !uploadedFileId &&
+                    !form.fileId
+                  ) {
+                    setFormError("Upload a PDF file or provide a PDF URL.");
+                    return;
+                  }
                   setFormError("");
+                  if (
+                    form.contentType === "PDF" &&
+                    form.fileId !== item.fileId &&
+                    !window.confirm(
+                      "Replace this published PDF? Existing student completion history will be preserved."
+                    )
+                  ) {
+                    return;
+                  }
                   update.mutate(
                     {
                       contentId: item.id,
@@ -475,9 +507,7 @@ function MaterialRow({ item, courseId }: { item: ManageContentItem; courseId: st
                         ...form,
                         title: form.title.trim(),
                         externalUrl: externalUrl ?? "",
-                        fileId:
-                          files.find((file) => file.status === "done")?.fileId ??
-                          form.fileId,
+                        fileId: uploadedFileId ?? form.fileId,
                       },
                     },
                     { onSuccess: () => setEditOpen(false) }
@@ -539,7 +569,63 @@ function MaterialRow({ item, courseId }: { item: ManageContentItem; courseId: st
               maxFiles={1}
             />
           )}
-          {["VIDEO", "AUDIO", "LINK", "EMBED"].includes(form.contentType) && (
+          {form.contentType === "PDF" && (
+            <>
+              {form.fileId && (
+                <div className="border-border flex items-center justify-between rounded-md border p-3 text-sm">
+                  <div>
+                    <p className="font-medium">{form.fileName ?? "Current PDF"}</p>
+                    {form.fileSizeBytes && (
+                      <p className="text-muted-foreground text-xs">
+                        {(form.fileSizeBytes / (1024 * 1024)).toFixed(1)} MB
+                      </p>
+                    )}
+                    {form.pdfAccessibilityWarning && (
+                      <p className="text-warning bg-warning/10 rounded-md p-3 text-xs">
+                        {form.pdfAccessibilityWarning}
+                      </p>
+                    )}
+                    {form.pdfVersions && form.pdfVersions.length > 0 && (
+                      <div className="text-muted-foreground text-xs">
+                        Previous versions: {form.pdfVersions.length}
+                      </div>
+                    )}
+                  </div>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() =>
+                      setForm({ ...form, fileId: undefined, fileName: undefined })
+                    }
+                  >
+                    Replace PDF
+                  </Button>
+                </div>
+              )}
+              {!form.fileId && (
+                <FileUploader
+                  files={files}
+                  onChange={(next) => {
+                    setFiles(next);
+                    const uploaded = next.find(
+                      (file) => file.status === "done" && file.fileId
+                    );
+                    if (uploaded?.fileId)
+                      setForm({
+                        ...form,
+                        fileId: uploaded.fileId,
+                        fileName: uploaded.name,
+                        fileSizeBytes: uploaded.size,
+                      });
+                  }}
+                  accept="application/pdf"
+                  maxFiles={1}
+                />
+              )}
+            </>
+          )}
+          {["VIDEO", "AUDIO", "PDF", "LINK", "EMBED"].includes(form.contentType) && (
             <Input
               value={form.externalUrl}
               onChange={(e) => setForm({ ...form, externalUrl: e.target.value })}

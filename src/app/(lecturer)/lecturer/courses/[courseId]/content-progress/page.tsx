@@ -103,6 +103,8 @@ export default function LecturerContentProgressPage({
       "Started at",
       "Completed at",
       "Last accessed at",
+      "Opened",
+      "Downloaded",
     ];
     const escape = (value: string | number | boolean | null) =>
       `"${String(value ?? "").replaceAll('"', '""')}"`;
@@ -120,6 +122,8 @@ export default function LecturerContentProgressPage({
         row.startedAt,
         row.completedAt,
         row.lastAccessedAt,
+        row.opened ? "Yes" : "No",
+        row.downloaded ? "Yes" : "No",
       ]),
     ]
       .map((line) => line.map(escape).join(","))
@@ -270,6 +274,12 @@ export default function LecturerContentProgressPage({
                 <th className="text-muted-foreground px-4 py-3 text-left text-xs uppercase">
                   Completed
                 </th>
+                <th className="text-muted-foreground px-4 py-3 text-left text-xs uppercase">
+                  Last accessed
+                </th>
+                <th className="text-muted-foreground px-4 py-3 text-left text-xs uppercase">
+                  PDF activity
+                </th>
               </tr>
             </thead>
             <tbody className="divide-border divide-y">
@@ -299,6 +309,18 @@ export default function LecturerContentProgressPage({
                   </td>
                   <td className="text-muted-foreground px-4 py-3 text-xs">
                     {row.completedAt ? new Date(row.completedAt).toLocaleString() : "—"}
+                  </td>
+                  <td className="text-muted-foreground px-4 py-3 text-xs">
+                    {row.contentType === "PDF"
+                      ? `${row.opened ? "Opened" : "Not opened"} · ${
+                          row.downloaded ? "Downloaded" : "Not downloaded"
+                        }`
+                      : "—"}
+                  </td>
+                  <td className="text-muted-foreground px-4 py-3 text-xs">
+                    {row.lastAccessedAt
+                      ? new Date(row.lastAccessedAt).toLocaleString()
+                      : "—"}
                   </td>
                 </tr>
               ))}
