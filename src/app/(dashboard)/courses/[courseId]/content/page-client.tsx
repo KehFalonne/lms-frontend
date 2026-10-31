@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect } from "react";
 import {
   CheckCircle2,
   ChevronRight,
@@ -31,6 +32,38 @@ const ICONS: Record<ContentType, typeof FileText> = {
 export default function CourseContentPageClient({ courseId }: { courseId: string }) {
   const { data, isLoading, isError, refetch } = useContentTree(courseId);
   const modules = data?.data ?? [];
+
+  useEffect(() => {
+    if (isLoading) return;
+
+    const savedScroll = window.sessionStorage.getItem(`course-content-scroll-${courseId}`);
+    if (!savedScroll) return;
+
+    const scrollY = Number(savedScroll);
+    if (!Number.isFinite(scrollY) || scrollY <= 0) return;
+
+    let restoreTimer: number | undefined;
+    const restorePosition = () => {
+      window.scrollTo({ top: scrollY, behavior: "auto" });
+      restoreTimer = window.setTimeout(() => {
+        window.scrollTo({ top: scrollY, behavior: "auto" });
+      }, 180);
+    };
+
+    const animationFrame = window.requestAnimationFrame(restorePosition);
+
+    return () => {
+      window.cancelAnimationFrame(animationFrame);
+      if (restoreTimer) window.clearTimeout(restoreTimer);
+    };
+  }, [courseId, isLoading, modules.length]);
+
+  function rememberContentListPosition() {
+    window.sessionStorage.setItem(
+      `course-content-scroll-${courseId}`,
+      String(window.scrollY),
+    );
+  }
 
   if (isLoading) {
     return (
@@ -74,6 +107,8 @@ export default function CourseContentPageClient({ courseId }: { courseId: string
                 <li key={item.id}>
                   <Link
                     href={`/courses/${courseId}/content/${item.id}`}
+                    onPointerDown={rememberContentListPosition}
+                    onClick={rememberContentListPosition}
                     className="hover:bg-surface flex items-center justify-between gap-3 px-5 py-3 transition-colors"
                   >
                     <div className="flex min-w-0 items-center gap-3">

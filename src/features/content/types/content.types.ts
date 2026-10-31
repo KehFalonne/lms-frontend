@@ -3,13 +3,22 @@ export type ContentType =
 
 export type ProgressStatus = "NOT_STARTED" | "IN_PROGRESS" | "COMPLETED";
 
+export interface AudioChapter {
+  title: string;
+  startSeconds: number;
+}
+
 export interface ContentItemSummary {
   id: string;
   title: string;
   contentType: ContentType;
   description: string;
   body: string;
+  transcript: string;
   externalUrl: string;
+  allowDownload: boolean;
+  chapters: AudioChapter[];
+  attachmentIds: string[];
   position: number;
   isRequired: boolean;
   progressStatus: ProgressStatus;
@@ -40,13 +49,23 @@ export interface ManageContentItem {
   contentType: ContentType;
   description: string;
   body: string;
+  transcript: string;
   externalUrl: string;
+  allowDownload: boolean;
+  chapters: AudioChapter[];
+  attachmentIds: string[];
   fileId: string | null;
   fileName?: string | null;
   fileSizeBytes?: number | null;
   fileMimeType?: string | null;
   pdfAccessibilityWarning?: string | null;
   pdfVersions?: {
+    versionNumber: number;
+    fileName: string;
+    fileSizeBytes: number | null;
+    createdAt: string;
+  }[];
+  audioVersions?: {
     versionNumber: number;
     fileName: string;
     fileSizeBytes: number | null;
@@ -64,13 +83,23 @@ export interface ContentItemDetail {
   contentType: ContentType;
   description: string;
   body: string;
+  transcript: string;
   externalUrl: string;
+  allowDownload: boolean;
+  chapters: AudioChapter[];
+  attachmentIds: string[];
   fileId: string | null;
   fileName?: string | null;
   fileSizeBytes?: number | null;
   fileMimeType?: string | null;
   pdfAccessibilityWarning?: string | null;
   pdfVersions?: {
+    versionNumber: number;
+    fileName: string;
+    fileSizeBytes: number | null;
+    createdAt: string;
+  }[];
+  audioVersions?: {
     versionNumber: number;
     fileName: string;
     fileSizeBytes: number | null;

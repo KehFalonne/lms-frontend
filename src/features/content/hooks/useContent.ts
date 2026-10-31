@@ -148,6 +148,24 @@ export function useUpdateContentItem(offeringId: string) {
   });
 }
 
+export function useAutosaveContentItem(offeringId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      contentId,
+      payload,
+    }: {
+      contentId: string;
+      payload: Parameters<typeof updateContentItem>[1];
+    }) => updateContentItem(contentId, payload),
+    onSuccess: (_, variables) => {
+      qc.invalidateQueries({ queryKey: ["module-content"] });
+      qc.invalidateQueries({ queryKey: ["content-item", variables.contentId] });
+      qc.invalidateQueries({ queryKey: ["course-modules", offeringId] });
+    },
+  });
+}
+
 export function usePublishContentItem(offeringId: string) {
   const qc = useQueryClient();
   return useMutation({

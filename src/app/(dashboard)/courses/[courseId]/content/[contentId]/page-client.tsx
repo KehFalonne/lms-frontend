@@ -20,12 +20,18 @@ export default function ContentItemPageClient({
 
   return (
     <div>
-      <Link
-        href={`/courses/${courseId}/content`}
-        className="text-muted-foreground hover:text-foreground mb-4 inline-flex items-center gap-1 text-sm"
+      <nav
+        aria-label="Lesson navigation"
+        className="border-border bg-background/95 sticky top-14 z-20 mb-4 flex items-center rounded-lg border px-3 py-2 shadow-sm backdrop-blur sm:top-16"
       >
-        <ArrowLeft className="h-3.5 w-3.5" /> Back to content
-      </Link>
+        <Link
+          href={`/courses/${courseId}/content`}
+          className="text-muted-foreground hover:text-foreground inline-flex min-h-8 items-center gap-1.5 text-sm transition-colors"
+        >
+          <ArrowLeft className="h-3.5 w-3.5" aria-hidden />
+          <span>All course content</span>
+        </Link>
+      </nav>
 
       {isLoading && <Skeleton className="h-96 w-full" />}
       {isError && <ErrorState onRetry={() => refetch()} />}

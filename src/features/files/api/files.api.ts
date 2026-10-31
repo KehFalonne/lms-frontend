@@ -92,9 +92,15 @@ export async function uploadFile(
 /**
  * Fetch a signed download URL and open it.
  */
-export async function downloadFile(fileId: string): Promise<void> {
+export async function downloadFile(fileId: string, filename?: string): Promise<void> {
   const res = await getDownloadUrl(fileId);
-  window.open(res.data.downloadUrl, "_blank", "noopener,noreferrer");
+  const anchor = document.createElement("a");
+  anchor.href = res.data.downloadUrl;
+  anchor.download = filename ?? "download";
+  anchor.rel = "noopener";
+  document.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
 }
 
 export async function getDownloadUrl(fileId: string) {
@@ -135,6 +141,7 @@ export const FILE_LIMITS = {
     "webp",
     "svg",
     "mp3",
+    "m4a",
     "mp4",
     "wav",
     "webm",

@@ -98,12 +98,12 @@ export default function LecturerContentProgressPage({
       "Content",
       "Type",
       "Required",
-      "Watched %",
+      "Progress %",
       "Status",
       "Started at",
       "Completed at",
       "Last accessed at",
-      "Opened",
+      "Viewed",
       "Downloaded",
     ];
     const escape = (value: string | number | boolean | null) =>
@@ -122,7 +122,7 @@ export default function LecturerContentProgressPage({
         row.startedAt,
         row.completedAt,
         row.lastAccessedAt,
-        row.opened ? "Yes" : "No",
+        row.viewed ? "Yes" : "No",
         row.downloaded ? "Yes" : "No",
       ]),
     ]
@@ -163,7 +163,7 @@ export default function LecturerContentProgressPage({
           ["Completed", summary.completed],
           ["In progress", summary.inProgress],
           ["Not started", summary.notStarted],
-          ["Average watched", `${summary.average}%`],
+          ["Average progress", `${summary.average}%`],
         ].map(([label, value]) => (
           <Card key={String(label)} className="p-4">
             <p className="text-muted-foreground text-xs">{label}</p>
@@ -266,7 +266,7 @@ export default function LecturerContentProgressPage({
                   Content
                 </th>
                 <th className="text-muted-foreground px-4 py-3 text-left text-xs uppercase">
-                  Watched
+                  Progress
                 </th>
                 <th className="text-muted-foreground px-4 py-3 text-left text-xs uppercase">
                   Status
@@ -278,7 +278,7 @@ export default function LecturerContentProgressPage({
                   Last accessed
                 </th>
                 <th className="text-muted-foreground px-4 py-3 text-left text-xs uppercase">
-                  PDF activity
+                  Activity
                 </th>
               </tr>
             </thead>
@@ -312,10 +312,18 @@ export default function LecturerContentProgressPage({
                   </td>
                   <td className="text-muted-foreground px-4 py-3 text-xs">
                     {row.contentType === "PDF"
-                      ? `${row.opened ? "Opened" : "Not opened"} · ${
-                          row.downloaded ? "Downloaded" : "Not downloaded"
-                        }`
-                      : "—"}
+                      ? `${row.opened ? "Opened" : "Not opened"} · ${row.downloaded ? "Downloaded" : "Not downloaded"}`
+                      : row.contentType === "AUDIO"
+                        ? row.viewed
+                          ? "Listened"
+                          : "Not listened"
+                        : row.contentType === "VIDEO"
+                          ? row.viewed
+                            ? "Watched"
+                            : "Not watched"
+                          : row.viewed
+                            ? "Viewed"
+                            : "Not viewed"}
                   </td>
                   <td className="text-muted-foreground px-4 py-3 text-xs">
                     {row.lastAccessedAt

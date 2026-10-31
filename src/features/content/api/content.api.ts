@@ -7,6 +7,7 @@ import type {
   ProgressStatus,
   CourseModule,
   ManageContentItem,
+  AudioChapter,
 } from "../types/content.types";
 
 export async function getContentTree(offeringId: string) {
@@ -46,6 +47,7 @@ export async function getLecturerContentProgress(offeringId: string) {
         lastAccessedAt: string | null;
         opened: boolean;
         downloaded: boolean;
+        viewed: boolean;
       }[];
       academicGrading: { enabled: boolean; message: string };
     }>
@@ -97,24 +99,44 @@ export async function createContentItem(
     contentType: ContentType;
     description: string;
     body: string;
+    transcript: string;
+    allowDownload: boolean;
+    chapters: AudioChapter[];
+    attachmentIds: string[];
     externalUrl: string;
     fileId?: string;
     isRequired: boolean;
   }
 ) {
-  return post<ApiResponse<ManageContentItem>>(`/modules/${moduleId}/content/`, payload);
+  return post<ApiResponse<ManageContentItem>>(`/modules/${moduleId}/content/`, {
+    title: payload.title,
+    content_type: payload.contentType,
+    description: payload.description,
+    body: payload.body,
+    transcript: payload.transcript,
+    allow_download: payload.allowDownload,
+    chapters: payload.chapters,
+    attachment_ids: payload.attachmentIds,
+    external_url: payload.externalUrl,
+    ...(payload.fileId !== undefined && { file_id: payload.fileId }),
+    is_required: payload.isRequired,
+  });
 }
 
 export async function updateContentItem(
   contentId: string,
   payload: Partial<Parameters<typeof createContentItem>[1]>
 ) {
-  const { contentType, externalUrl, fileId, isRequired, ...rest } = payload;
+  const { contentType, externalUrl, fileId, isRequired, transcript, allowDownload, chapters, attachmentIds, ...rest } = payload;
   return patch<ApiResponse<ManageContentItem>>(`/content/${contentId}/`, {
     ...rest,
     ...(contentType !== undefined && { content_type: contentType }),
     ...(externalUrl !== undefined && { external_url: externalUrl }),
     ...(fileId !== undefined && { file_id: fileId }),
+    ...(transcript !== undefined && { transcript }),
+    ...(allowDownload !== undefined && { allow_download: allowDownload }),
+    ...(chapters !== undefined && { chapters }),
+    ...(attachmentIds !== undefined && { attachment_ids: attachmentIds }),
     ...(isRequired !== undefined && { is_required: isRequired }),
   });
 }

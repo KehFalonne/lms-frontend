@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useState } from "react";
+import { use, useEffect, useRef, useState } from "react";
 import { BookOpen, Pencil, Plus, Send, Trash2 } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
@@ -23,13 +23,17 @@ import {
   usePublishContentItem,
   useUpdateModule,
   useUpdateContentItem,
+  useAutosaveContentItem,
 } from "@/features/content/hooks/useContent";
 import type {
+  AudioChapter,
   ContentType,
   CourseModule,
   ManageContentItem,
 } from "@/features/content/types/content.types";
 import { normalizeVideoUrl } from "@/features/content/utils/video-url";
+import { sanitizeContentHtml } from "@/features/content/utils/content-html";
+import { useDebounce } from "@/hooks/useDebounce";
 
 export default function LecturerContentPage({
   params,
@@ -147,6 +151,7 @@ function ModuleCard({ module, courseId }: { module: CourseModule; courseId: stri
   const create = useCreateContentItem(courseId);
   const updateModule = useUpdateModule(courseId);
   const [open, setOpen] = useState(false);
+  const [previewOpen, setPreviewOpen] = useState(false);
   const [editModuleOpen, setEditModuleOpen] = useState(false);
   const [moduleForm, setModuleForm] = useState({
     title: module.title,
@@ -157,11 +162,16 @@ function ModuleCard({ module, courseId }: { module: CourseModule; courseId: stri
     contentType: "TEXT" as ContentType,
     description: "",
     body: "",
+    transcript: "",
     externalUrl: "",
     fileId: undefined as string | undefined,
     isRequired: false,
+    allowDownload: true,
+    chapters: [] as AudioChapter[],
+    attachmentIds: [] as string[],
   });
   const [files, setFiles] = useState<UploadedFile[]>([]);
+  const [attachmentFiles, setAttachmentFiles] = useState<UploadedFile[]>([]);
   const [formError, setFormError] = useState("");
 
   function submit() {
@@ -171,8 +181,20 @@ function ModuleCard({ module, courseId }: { module: CourseModule; courseId: stri
         ? normalizeVideoUrl(form.externalUrl)
         : form.externalUrl.trim();
     const uploadedFileId = files.find((file) => file.status === "done")?.fileId;
-    if (["AUDIO", "LINK", "EMBED"].includes(form.contentType) && !externalUrl) {
+    if (form.contentType === "TEXT" && !form.body.trim()) {
+      setFormError("Enter the lesson text.");
+      return;
+    }
+    if (form.contentType === "LINK" && !externalUrl) {
       setFormError("Enter a valid HTTP(S) URL.");
+      return;
+    }
+    if (form.contentType === "AUDIO" && !externalUrl && !uploadedFileId) {
+      setFormError("Paste an audio URL or upload an audio file.");
+      return;
+    }
+    if (form.contentType === "EMBED" && !externalUrl) {
+      setFormError("Enter a valid HTTP(S) embed URL.");
       return;
     }
     if (form.contentType === "VIDEO" && !externalUrl && !uploadedFileId) {
@@ -181,6 +203,11 @@ function ModuleCard({ module, courseId }: { module: CourseModule; courseId: stri
     }
     if (form.contentType === "PDF" && !externalUrl && !uploadedFileId) {
       setFormError("Upload a PDF file or provide a PDF URL.");
+      return;
+    }
+    const chapterError = validateChapters(form.chapters);
+    if (chapterError) {
+      setFormError(chapterError);
       return;
     }
     setFormError("");
@@ -192,6 +219,9 @@ function ModuleCard({ module, courseId }: { module: CourseModule; courseId: stri
           title: form.title.trim(),
           externalUrl: externalUrl ?? "",
           fileId: uploadedFileId,
+          attachmentIds: attachmentFiles
+            .filter((file) => file.status === "done" && file.fileId)
+            .map((file) => file.fileId!),
         },
       },
       {
@@ -201,11 +231,16 @@ function ModuleCard({ module, courseId }: { module: CourseModule; courseId: stri
             contentType: "TEXT",
             description: "",
             body: "",
+            transcript: "",
             externalUrl: "",
             fileId: undefined,
             isRequired: false,
+            allowDownload: true,
+            chapters: [],
+            attachmentIds: [],
           });
           setFiles([]);
+          setAttachmentFiles([]);
           setOpen(false);
         },
       }
@@ -310,6 +345,14 @@ function ModuleCard({ module, courseId }: { module: CourseModule; courseId: stri
             <Button onClick={submit} loading={create.isPending}>
               Create draft
             </Button>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => setPreviewOpen(true)}
+              disabled={!form.body.trim()}
+            >
+              Preview
+            </Button>
           </>
         }
         size="lg"
@@ -344,14 +387,34 @@ function ModuleCard({ module, courseId }: { module: CourseModule; courseId: stri
           {(form.contentType === "TEXT" ||
             form.contentType === "DOCUMENT" ||
             form.contentType === "PDF") && (
-            <Textarea
+            <RichTextEditor
               value={form.body}
-              onChange={(e) => setForm({ ...form, body: e.target.value })}
+              onChange={(body) => setForm({ ...form, body })}
               placeholder="Lesson content"
-              rows={7}
             />
           )}
-          {["PDF", "DOCUMENT", "FILE", "VIDEO"].includes(form.contentType) && (
+          {form.contentType === "TEXT" && (
+            <FileUploader
+              files={attachmentFiles}
+              onChange={setAttachmentFiles}
+              maxFiles={5}
+            />
+          )}
+          {form.contentType === "AUDIO" && (
+            <div className="space-y-3">
+              <Textarea
+                value={form.transcript}
+                onChange={(e) => setForm({ ...form, transcript: e.target.value })}
+                placeholder="Optional audio transcript"
+                rows={8}
+              />
+              <ChapterEditor
+                chapters={form.chapters}
+                onChange={(chapters) => setForm({ ...form, chapters })}
+              />
+            </div>
+          )}
+          {["PDF", "DOCUMENT", "FILE", "VIDEO", "AUDIO"].includes(form.contentType) && (
             <FileUploader
               files={files}
               onChange={(next) => {
@@ -366,6 +429,8 @@ function ModuleCard({ module, courseId }: { module: CourseModule; courseId: stri
                   ? "video/mp4,video/webm,video/ogg,video/quicktime"
                   : form.contentType === "PDF"
                     ? "application/pdf"
+                    : form.contentType === "AUDIO"
+                      ? "audio/*"
                     : undefined
               }
               maxFiles={1}
@@ -388,9 +453,185 @@ function ModuleCard({ module, courseId }: { module: CourseModule; courseId: stri
             />
             Required for students
           </label>
+          {form.contentType === "AUDIO" && (
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={form.allowDownload}
+                onChange={(e) => setForm({ ...form, allowDownload: e.target.checked })}
+                className="h-4 w-4"
+              />
+              Allow students to download audio
+            </label>
+          )}
+        </div>
+      </Dialog>
+      <Dialog
+        open={previewOpen}
+        onClose={() => setPreviewOpen(false)}
+        title={form.title.trim() || "Lesson preview"}
+        size="lg"
+      >
+        <div className="space-y-3">
+          <p className="text-muted-foreground text-xs">Student preview</p>
+          <div
+            className="lesson-document lesson-content"
+            dangerouslySetInnerHTML={{
+              __html: sanitizeContentHtml(form.body || "<p>No lesson content yet.</p>"),
+            }}
+          />
         </div>
       </Dialog>
     </Card>
+  );
+}
+
+function ChapterEditor({
+  chapters,
+  onChange,
+}: {
+  chapters: AudioChapter[];
+  onChange: (chapters: AudioChapter[]) => void;
+}) {
+  return (
+    <div className="border-border space-y-3 rounded-md border p-3">
+      <div className="flex items-center justify-between gap-2">
+        <div>
+          <p className="text-sm font-medium">Audio chapters</p>
+          <p className="text-muted-foreground text-xs">Start times are in seconds.</p>
+        </div>
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          onClick={() => {
+            const previousStart = chapters.at(-1)?.startSeconds ?? -1;
+            onChange([
+              ...chapters,
+              { title: "", startSeconds: Math.max(0, previousStart + 1) },
+            ]);
+          }}
+        >
+          Add chapter
+        </Button>
+      </div>
+      {chapters.map((chapter, index) => (
+        <div key={`${index}-${chapter.title}`} className="flex items-end gap-2">
+          <Input
+            value={chapter.title}
+            onChange={(event) => {
+              const next = [...chapters];
+              next[index] = { ...chapter, title: event.target.value };
+              onChange(next);
+            }}
+            placeholder={`Chapter ${index + 1}`}
+          />
+          <Input
+            type="number"
+            min={0}
+            step={1}
+            value={chapter.startSeconds}
+            onChange={(event) => {
+              const next = [...chapters];
+              next[index] = {
+                ...chapter,
+                startSeconds: Math.max(0, Number(event.target.value) || 0),
+              };
+              onChange(next);
+            }}
+            className="w-28"
+            aria-label={`${chapter.title || `Chapter ${index + 1}`} start time in seconds`}
+          />
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={() => onChange(chapters.filter((_, itemIndex) => itemIndex !== index))}
+          >
+            Remove
+          </Button>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function validateChapters(chapters: AudioChapter[]): string | null {
+  let previousStart = -1;
+  for (const [index, chapter] of chapters.entries()) {
+    if (!chapter.title.trim()) {
+      return `Enter a title for chapter ${index + 1}.`;
+    }
+    if (chapter.startSeconds < 0 || chapter.startSeconds <= previousStart) {
+      return "Chapter start times must be increasing. Set each chapter after the previous one.";
+    }
+    previousStart = chapter.startSeconds;
+  }
+  return null;
+}
+
+function RichTextEditor({
+  value,
+  onChange,
+  placeholder,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+  placeholder: string;
+}) {
+  const editorRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (editorRef.current && editorRef.current.innerHTML !== value) {
+      editorRef.current.innerHTML = value;
+    }
+  }, [value]);
+
+  function format(command: string, commandValue?: string) {
+    editorRef.current?.focus();
+    document.execCommand(command, false, commandValue);
+    onChange(editorRef.current?.innerHTML ?? "");
+  }
+
+  return (
+    <div className="space-y-2">
+      <div className="border-border bg-muted/30 flex flex-wrap gap-1 rounded-t-md border border-b-0 p-2">
+        {[
+          ["Bold", "bold"],
+          ["Italic", "italic"],
+          ["Underline", "underline"],
+          ["Heading", "formatBlock", "<h3>"],
+          ["Quote", "formatBlock", "<blockquote>"],
+          ["Bullet list", "insertUnorderedList"],
+          ["Numbered list", "insertOrderedList"],
+          ["Clear formatting", "removeFormat"],
+        ].map(([label, command, commandValue]) => (
+          <Button
+            key={label}
+            type="button"
+            size="sm"
+            variant="ghost"
+            onMouseDown={(event) => event.preventDefault()}
+            onClick={() => format(command, commandValue)}
+          >
+            {label}
+          </Button>
+        ))}
+      </div>
+      <div
+        ref={editorRef}
+        contentEditable
+        suppressContentEditableWarning
+        role="textbox"
+        aria-label={placeholder}
+        data-placeholder={placeholder}
+        onInput={() => onChange(editorRef.current?.innerHTML ?? "")}
+        className="lesson-content border-border bg-background min-h-[420px] w-full resize-y rounded-b-md border px-4 py-3 text-sm outline-none focus-within:ring-2 focus-within:ring-primary"
+      />
+      <p className="text-muted-foreground text-xs">
+        Type your lesson, select text, then choose a formatting button.
+      </p>
+    </div>
   );
 }
 
@@ -398,23 +639,55 @@ function MaterialRow({ item, courseId }: { item: ManageContentItem; courseId: st
   const publish = usePublishContentItem(courseId);
   const remove = useDeleteContentItem(courseId);
   const update = useUpdateContentItem(courseId);
+  const autosave = useAutosaveContentItem(courseId);
   const [editOpen, setEditOpen] = useState(false);
+  const [editPreviewOpen, setEditPreviewOpen] = useState(false);
   const [formError, setFormError] = useState("");
   const [form, setForm] = useState({
     title: item.title,
     contentType: item.contentType,
     description: item.description,
     body: item.body,
+    transcript: item.transcript ?? "",
     externalUrl: item.externalUrl,
+    allowDownload: item.allowDownload ?? true,
+    chapters: item.chapters ?? [],
+    attachmentIds: item.attachmentIds ?? [],
     fileId: item.fileId ?? undefined,
     fileName: item.fileName,
     fileSizeBytes: item.fileSizeBytes,
     fileMimeType: item.fileMimeType,
+    audioVersions: item.audioVersions,
     pdfAccessibilityWarning: item.pdfAccessibilityWarning,
     pdfVersions: item.pdfVersions,
     isRequired: item.isRequired,
   });
+  const autosaveSnapshot = useDebounce(
+    JSON.stringify({ title: form.title, description: form.description, body: form.body }),
+    1500
+  );
+  const autosaveInitialized = useRef(false);
+  const [autosaveStatus, setAutosaveStatus] = useState<"idle" | "saved">("idle");
+
+  useEffect(() => {
+    if (!autosaveInitialized.current) {
+      autosaveInitialized.current = true;
+      return;
+    }
+    if (!editOpen || item.isPublished || form.contentType !== "TEXT") return;
+    const snapshot = JSON.parse(autosaveSnapshot) as {
+      title: string;
+      description: string;
+      body: string;
+    };
+    if (!snapshot.title.trim() || !snapshot.body.trim()) return;
+    autosave.mutate(
+      { contentId: item.id, payload: snapshot },
+      { onSuccess: () => setAutosaveStatus("saved") }
+    );
+  }, [autosaveSnapshot, editOpen]);
   const [files, setFiles] = useState<UploadedFile[]>([]);
+  const [attachmentFiles, setAttachmentFiles] = useState<UploadedFile[]>([]);
 
   return (
     <>
@@ -471,10 +744,11 @@ function MaterialRow({ item, courseId }: { item: ManageContentItem; courseId: st
                     form.contentType === "VIDEO"
                       ? normalizeVideoUrl(form.externalUrl)
                       : form.externalUrl.trim();
-                  if (
-                    ["AUDIO", "LINK", "EMBED"].includes(form.contentType) &&
-                    !externalUrl
-                  ) {
+                  if (form.contentType === "TEXT" && !form.body.trim()) {
+                    setFormError("Enter the lesson text.");
+                    return;
+                  }
+                  if (form.contentType === "LINK" && !externalUrl) {
                     setFormError("Enter a valid HTTP(S) URL.");
                     return;
                   }
@@ -482,12 +756,26 @@ function MaterialRow({ item, courseId }: { item: ManageContentItem; courseId: st
                     (file) => file.status === "done"
                   )?.fileId;
                   if (
+                    form.contentType === "AUDIO" &&
+                    !externalUrl &&
+                    !uploadedFileId &&
+                    !form.fileId
+                  ) {
+                    setFormError("Paste an audio URL or upload an audio file.");
+                    return;
+                  }
+                  if (
                     form.contentType === "PDF" &&
                     !form.externalUrl.trim() &&
                     !uploadedFileId &&
                     !form.fileId
                   ) {
                     setFormError("Upload a PDF file or provide a PDF URL.");
+                    return;
+                  }
+                  const chapterError = validateChapters(form.chapters);
+                  if (chapterError) {
+                    setFormError(chapterError);
                     return;
                   }
                   setFormError("");
@@ -508,6 +796,12 @@ function MaterialRow({ item, courseId }: { item: ManageContentItem; courseId: st
                         title: form.title.trim(),
                         externalUrl: externalUrl ?? "",
                         fileId: uploadedFileId ?? form.fileId,
+                        attachmentIds: [
+                          ...form.attachmentIds,
+                          ...attachmentFiles
+                            .filter((file) => file.status === "done" && file.fileId)
+                            .map((file) => file.fileId!),
+                        ],
                       },
                     },
                     { onSuccess: () => setEditOpen(false) }
@@ -516,6 +810,14 @@ function MaterialRow({ item, courseId }: { item: ManageContentItem; courseId: st
               }
             >
               Save changes
+            </Button>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => setEditPreviewOpen(true)}
+              disabled={!form.body.trim()}
+            >
+              Preview
             </Button>
           </>
         }
@@ -547,15 +849,34 @@ function MaterialRow({ item, courseId }: { item: ManageContentItem; courseId: st
             rows={2}
           />
           {formError && <p className="text-danger text-sm">{formError}</p>}
+          {form.contentType === "TEXT" && !item.isPublished && autosaveStatus === "saved" && (
+            <p className="text-success text-xs">Draft saved automatically.</p>
+          )}
           {["TEXT", "DOCUMENT", "PDF"].includes(form.contentType) && (
-            <Textarea
+            <RichTextEditor
               value={form.body}
-              onChange={(e) => setForm({ ...form, body: e.target.value })}
+              onChange={(body) => setForm({ ...form, body })}
               placeholder="Lesson content"
-              rows={7}
             />
           )}
-          {form.contentType === "VIDEO" && (
+          {(form.contentType === "VIDEO" || form.contentType === "AUDIO") && (
+            <>
+            {form.contentType === "AUDIO" && form.fileId && (
+              <div className="border-border rounded-md border p-3 text-sm">
+                <p className="font-medium">Current audio</p>
+                <p className="text-muted-foreground mt-1 text-xs">
+                  {form.fileName ?? "Uploaded audio"}
+                  {form.fileSizeBytes
+                    ? ` · ${(form.fileSizeBytes / (1024 * 1024)).toFixed(1)} MB`
+                    : ""}
+                </p>
+                {form.audioVersions && form.audioVersions.length > 0 && (
+                  <p className="text-muted-foreground mt-2 text-xs">
+                    Previous versions: {form.audioVersions.length}
+                  </p>
+                )}
+              </div>
+            )}
             <FileUploader
               files={files}
               onChange={(next) => {
@@ -565,9 +886,14 @@ function MaterialRow({ item, courseId }: { item: ManageContentItem; courseId: st
                 );
                 if (uploaded?.fileId) setForm({ ...form, fileId: uploaded.fileId });
               }}
-              accept="video/mp4,video/webm,video/ogg,video/quicktime"
+              accept={
+                form.contentType === "AUDIO"
+                  ? "audio/*"
+                  : "video/mp4,video/webm,video/ogg,video/quicktime"
+              }
               maxFiles={1}
             />
+            </>
           )}
           {form.contentType === "PDF" && (
             <>
@@ -625,6 +951,19 @@ function MaterialRow({ item, courseId }: { item: ManageContentItem; courseId: st
               )}
             </>
           )}
+          {form.contentType === "AUDIO" && (
+            <ChapterEditor
+              chapters={form.chapters}
+              onChange={(chapters) => setForm({ ...form, chapters })}
+            />
+          )}
+          {form.contentType === "TEXT" && (
+            <FileUploader
+              files={attachmentFiles}
+              onChange={setAttachmentFiles}
+              maxFiles={5}
+            />
+          )}
           {["VIDEO", "AUDIO", "PDF", "LINK", "EMBED"].includes(form.contentType) && (
             <Input
               value={form.externalUrl}
@@ -642,6 +981,33 @@ function MaterialRow({ item, courseId }: { item: ManageContentItem; courseId: st
             />
             Required for students
           </label>
+          {form.contentType === "AUDIO" && (
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={form.allowDownload}
+                onChange={(e) => setForm({ ...form, allowDownload: e.target.checked })}
+                className="h-4 w-4"
+              />
+              Allow students to download audio
+            </label>
+          )}
+        </div>
+      </Dialog>
+      <Dialog
+        open={editPreviewOpen}
+        onClose={() => setEditPreviewOpen(false)}
+        title={form.title.trim() || "Lesson preview"}
+        size="lg"
+      >
+        <div className="space-y-3">
+          <p className="text-muted-foreground text-xs">Student preview</p>
+          <div
+            className="lesson-document lesson-content"
+            dangerouslySetInnerHTML={{
+              __html: sanitizeContentHtml(form.body || "<p>No lesson content yet.</p>"),
+            }}
+          />
         </div>
       </Dialog>
     </>
