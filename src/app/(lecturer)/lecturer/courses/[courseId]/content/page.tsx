@@ -29,6 +29,7 @@ import type {
   CourseModule,
   ManageContentItem,
 } from "@/features/content/types/content.types";
+import { normalizeVideoUrl } from "@/features/content/utils/video-url";
 
 export default function LecturerContentPage({
   params,
@@ -161,13 +162,33 @@ function ModuleCard({ module, courseId }: { module: CourseModule; courseId: stri
     isRequired: false,
   });
   const [files, setFiles] = useState<UploadedFile[]>([]);
+  const [formError, setFormError] = useState("");
 
   function submit() {
     if (!form.title.trim()) return;
+    const externalUrl =
+      form.contentType === "VIDEO"
+        ? normalizeVideoUrl(form.externalUrl)
+        : form.externalUrl.trim();
+    const uploadedFileId = files.find((file) => file.status === "done")?.fileId;
+    if (["AUDIO", "LINK", "EMBED"].includes(form.contentType) && !externalUrl) {
+      setFormError("Enter a valid HTTP(S) URL.");
+      return;
+    }
+    if (form.contentType === "VIDEO" && !externalUrl && !uploadedFileId) {
+      setFormError("Paste a video URL or upload a video file.");
+      return;
+    }
+    setFormError("");
     create.mutate(
       {
         moduleId,
-        payload: { ...form, title: form.title.trim() },
+        payload: {
+          ...form,
+          title: form.title.trim(),
+          externalUrl: externalUrl ?? "",
+          fileId: uploadedFileId,
+        },
       },
       {
         onSuccess: () => {
@@ -315,6 +336,7 @@ function ModuleCard({ module, courseId }: { module: CourseModule; courseId: stri
             placeholder="Short description"
             rows={2}
           />
+          {formError && <p className="text-danger text-sm">{formError}</p>}
           {(form.contentType === "TEXT" ||
             form.contentType === "DOCUMENT" ||
             form.contentType === "PDF") && (
@@ -325,7 +347,7 @@ function ModuleCard({ module, courseId }: { module: CourseModule; courseId: stri
               rows={7}
             />
           )}
-          {["PDF", "DOCUMENT", "FILE"].includes(form.contentType) && (
+          {["PDF", "DOCUMENT", "FILE", "VIDEO"].includes(form.contentType) && (
             <FileUploader
               files={files}
               onChange={(next) => {
@@ -335,6 +357,11 @@ function ModuleCard({ module, courseId }: { module: CourseModule; courseId: stri
                 );
                 setForm({ ...form, fileId: uploaded?.fileId });
               }}
+              accept={
+                form.contentType === "VIDEO"
+                  ? "video/mp4,video/webm,video/ogg,video/quicktime"
+                  : undefined
+              }
               maxFiles={1}
             />
           )}
@@ -366,14 +393,17 @@ function MaterialRow({ item, courseId }: { item: ManageContentItem; courseId: st
   const remove = useDeleteContentItem(courseId);
   const update = useUpdateContentItem(courseId);
   const [editOpen, setEditOpen] = useState(false);
+  const [formError, setFormError] = useState("");
   const [form, setForm] = useState({
     title: item.title,
     contentType: item.contentType,
     description: item.description,
     body: item.body,
     externalUrl: item.externalUrl,
+    fileId: item.fileId ?? undefined,
     isRequired: item.isRequired,
   });
+  const [files, setFiles] = useState<UploadedFile[]>([]);
 
   return (
     <>
@@ -425,13 +455,34 @@ function MaterialRow({ item, courseId }: { item: ManageContentItem; courseId: st
             <Button
               loading={update.isPending}
               onClick={() =>
-                update.mutate(
-                  {
-                    contentId: item.id,
-                    payload: { ...form, title: form.title.trim() },
-                  },
-                  { onSuccess: () => setEditOpen(false) }
-                )
+                (() => {
+                  const externalUrl =
+                    form.contentType === "VIDEO"
+                      ? normalizeVideoUrl(form.externalUrl)
+                      : form.externalUrl.trim();
+                  if (
+                    ["AUDIO", "LINK", "EMBED"].includes(form.contentType) &&
+                    !externalUrl
+                  ) {
+                    setFormError("Enter a valid HTTP(S) URL.");
+                    return;
+                  }
+                  setFormError("");
+                  update.mutate(
+                    {
+                      contentId: item.id,
+                      payload: {
+                        ...form,
+                        title: form.title.trim(),
+                        externalUrl: externalUrl ?? "",
+                        fileId:
+                          files.find((file) => file.status === "done")?.fileId ??
+                          form.fileId,
+                      },
+                    },
+                    { onSuccess: () => setEditOpen(false) }
+                  );
+                })()
               }
             >
               Save changes
@@ -465,12 +516,27 @@ function MaterialRow({ item, courseId }: { item: ManageContentItem; courseId: st
             placeholder="Short description"
             rows={2}
           />
+          {formError && <p className="text-danger text-sm">{formError}</p>}
           {["TEXT", "DOCUMENT", "PDF"].includes(form.contentType) && (
             <Textarea
               value={form.body}
               onChange={(e) => setForm({ ...form, body: e.target.value })}
               placeholder="Lesson content"
               rows={7}
+            />
+          )}
+          {form.contentType === "VIDEO" && (
+            <FileUploader
+              files={files}
+              onChange={(next) => {
+                setFiles(next);
+                const uploaded = next.find(
+                  (file) => file.status === "done" && file.fileId
+                );
+                if (uploaded?.fileId) setForm({ ...form, fileId: uploaded.fileId });
+              }}
+              accept="video/mp4,video/webm,video/ogg,video/quicktime"
+              maxFiles={1}
             />
           )}
           {["VIDEO", "AUDIO", "LINK", "EMBED"].includes(form.contentType) && (

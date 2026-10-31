@@ -93,10 +93,26 @@ export async function uploadFile(
  * Fetch a signed download URL and open it.
  */
 export async function downloadFile(fileId: string): Promise<void> {
-  const res = await get<ApiResponse<{ downloadUrl: string; expiresIn: number }>>(
+  const res = await getDownloadUrl(fileId);
+  window.open(res.data.downloadUrl, "_blank", "noopener,noreferrer");
+}
+
+export async function getDownloadUrl(fileId: string) {
+  const response = await get<ApiResponse<{ downloadUrl: string; expiresIn: number }>>(
     `/files/${fileId}/download-url/`
   );
-  window.open(res.data.downloadUrl, "_blank", "noopener,noreferrer");
+  return {
+    ...response,
+    data: {
+      ...response.data,
+      downloadUrl: resolveFileUrl(response.data.downloadUrl),
+    },
+  };
+}
+
+function resolveFileUrl(value: string): string {
+  if (/^https?:\/\//i.test(value)) return value;
+  return `${new URL(API_BASE).origin}${value.startsWith("/") ? value : `/${value}`}`;
 }
 
 export const FILE_LIMITS = {

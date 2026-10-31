@@ -1,11 +1,13 @@
 "use client";
-import { useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { CheckCircle2, Download, ExternalLink, FileText, PlayCircle } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { downloadFile } from "@/features/files/api/files.api";
-import { useMarkProgress } from "../hooks/useContent";
+import { downloadFile, getDownloadUrl } from "@/features/files/api/files.api";
+import { useContentProgress, useMarkProgress } from "../hooks/useContent";
 import type { ContentItemDetail, ContentType } from "../types/content.types";
+import { isDirectVideoUrl, normalizeVideoUrl } from "../utils/video-url";
 
 const ICONS: Record<ContentType, typeof FileText> = {
   TEXT: FileText,
@@ -25,12 +27,19 @@ interface Props {
 
 export function ContentViewer({ item, offeringId }: Props) {
   const markProgress = useMarkProgress(offeringId);
+  const progressQuery = useContentProgress(item.id);
+  const savedProgress = progressQuery.data?.data.progressPercent ?? 0;
+  const progressStatus = progressQuery.data?.data.status ?? "NOT_STARTED";
+  const isCompleted = progressStatus === "COMPLETED";
+  const requiresVideoCompletion = item.contentType === "VIDEO" && item.isRequired;
+  const canMarkComplete =
+    !isCompleted && (!requiresVideoCompletion || savedProgress >= 90);
 
-  // Auto-mark in-progress on open
   useEffect(() => {
+    if (!progressQuery.isSuccess || isCompleted) return;
     markProgress.mutate({ contentId: item.id, status: "IN_PROGRESS" });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [item.id]);
+  }, [item.id, progressQuery.isSuccess, isCompleted]);
 
   const Icon = ICONS[item.contentType] ?? FileText;
 
@@ -54,7 +63,18 @@ export function ContentViewer({ item, offeringId }: Props) {
       </div>
 
       <div className="border-border bg-background rounded-lg border p-6">
-        <ContentBody item={item} />
+        <ContentBody
+          item={item}
+          progressPercent={savedProgress}
+          onProgress={(progressPercent) => {
+            if (isCompleted) return;
+            markProgress.mutate({
+              contentId: item.id,
+              status: "IN_PROGRESS",
+              progressPercent,
+            });
+          }}
+        />
       </div>
 
       {/* Mobile-friendly sticky action bar */}
@@ -67,23 +87,52 @@ export function ContentViewer({ item, offeringId }: Props) {
           <Button
             type="button"
             onClick={() =>
-              markProgress.mutate({ contentId: item.id, status: "COMPLETED" })
+              markProgress.mutate({
+                contentId: item.id,
+                status: "COMPLETED",
+                progressPercent: Math.max(savedProgress, 100),
+              })
             }
             loading={markProgress.isPending}
+            disabled={!canMarkComplete || progressQuery.isLoading}
             variant="primary"
             size="sm"
           >
             <CheckCircle2 className="mr-1.5 h-4 w-4" />
-            Mark complete
+            {isCompleted ? "Completed" : "Mark complete"}
           </Button>
         </div>
+        {requiresVideoCompletion && !isCompleted && !canMarkComplete && (
+          <p className="text-muted-foreground mt-2 text-right text-xs">
+            Watch at least 90% of this video to mark it complete ({savedProgress}%
+            watched).
+          </p>
+        )}
       </div>
     </div>
   );
 }
 
-function ContentBody({ item }: { item: ContentItemDetail }) {
-  const externalUrl = getSafeExternalUrl(item.externalUrl);
+function ContentBody({
+  item,
+  progressPercent,
+  onProgress,
+}: {
+  item: ContentItemDetail;
+  progressPercent: number;
+  onProgress: (progressPercent: number) => void;
+}) {
+  const fileUrl = useQuery({
+    queryKey: ["content-file-url", item.fileId],
+    queryFn: () =>
+      getDownloadUrl(item.fileId!).then((response) => response.data.downloadUrl),
+    enabled: Boolean(item.fileId),
+    staleTime: 8 * 60 * 1000,
+  }).data;
+  const externalUrl =
+    item.contentType === "VIDEO"
+      ? (fileUrl ?? normalizeVideoUrl(item.externalUrl))
+      : getSafeExternalUrl(item.externalUrl);
 
   switch (item.contentType) {
     case "TEXT":
@@ -95,6 +144,34 @@ function ContentBody({ item }: { item: ContentItemDetail }) {
       );
 
     case "VIDEO":
+      if (externalUrl && (isDirectVideoUrl(externalUrl) || Boolean(item.fileId))) {
+        return (
+          <DirectVideoPlayer
+            src={externalUrl}
+            title={item.title}
+            progressPercent={progressPercent}
+            onProgress={onProgress}
+          />
+        );
+      }
+      if (externalUrl) {
+        return (
+          <div className="aspect-video w-full overflow-hidden rounded-md bg-black">
+            <iframe
+              src={externalUrl}
+              title={item.title}
+              className="h-full w-full"
+              referrerPolicy="strict-origin-when-cross-origin"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+            />
+          </div>
+        );
+      }
+      return (
+        <p className="text-muted-foreground text-sm">No valid video source available.</p>
+      );
+
     case "EMBED":
       if (externalUrl) {
         return (
@@ -178,4 +255,121 @@ function getSafeExternalUrl(value: string | null | undefined): string | null {
   } catch {
     return null;
   }
+}
+
+function DirectVideoPlayer({
+  src,
+  title,
+  progressPercent,
+  onProgress,
+}: {
+  src: string;
+  title: string;
+  progressPercent: number;
+  onProgress: (progressPercent: number) => void;
+}) {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [hasError, setHasError] = useState(false);
+  const [playbackRate, setPlaybackRate] = useState(1);
+  const lastSavedProgress = useRef(progressPercent);
+  const hasResumed = useRef(false);
+
+  function changePlaybackRate(value: string) {
+    const rate = Number(value);
+    setPlaybackRate(rate);
+    if (videoRef.current) videoRef.current.playbackRate = rate;
+  }
+
+  if (hasError) {
+    return (
+      <div className="border-danger/30 bg-danger/5 text-danger rounded-lg border p-6 text-center">
+        <p className="font-medium">This video could not be loaded.</p>
+        <p className="mt-1 text-sm">
+          The video may be unavailable or the server may not allow playback.
+        </p>
+        <button
+          type="button"
+          className="text-foreground mt-3 underline"
+          onClick={() => {
+            setHasError(false);
+            setIsLoading(true);
+            videoRef.current?.load();
+          }}
+        >
+          Try again
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-3">
+      <div className="relative overflow-hidden rounded-lg bg-black shadow-sm">
+        {isLoading && (
+          <div className="text-muted-foreground absolute inset-0 z-10 flex items-center justify-center bg-black">
+            Loading video…
+          </div>
+        )}
+        <video
+          ref={videoRef}
+          src={src}
+          controls
+          preload="metadata"
+          playsInline
+          className="max-h-[70vh] w-full"
+          onCanPlay={() => setIsLoading(false)}
+          onError={() => {
+            setIsLoading(false);
+            setHasError(true);
+          }}
+          aria-label={title}
+          onLoadedMetadata={(event) => {
+            setIsLoading(false);
+            if (!hasResumed.current && progressPercent > 0) {
+              event.currentTarget.currentTime =
+                (event.currentTarget.duration * progressPercent) / 100;
+              hasResumed.current = true;
+            }
+          }}
+          onTimeUpdate={(event) => {
+            const duration = event.currentTarget.duration;
+            if (!Number.isFinite(duration) || duration <= 0) return;
+            const percent = Math.min(
+              100,
+              Math.round((event.currentTarget.currentTime / duration) * 100)
+            );
+            if (percent >= lastSavedProgress.current + 5 || percent === 100) {
+              lastSavedProgress.current = percent;
+              onProgress(percent);
+            }
+          }}
+          onEnded={() => {
+            lastSavedProgress.current = 100;
+            onProgress(100);
+          }}
+        />
+      </div>
+      <div className="flex items-center justify-end gap-2">
+        <label
+          htmlFor={`playback-rate-${title}`}
+          className="text-muted-foreground text-xs"
+        >
+          Speed
+        </label>
+        <select
+          id={`playback-rate-${title}`}
+          value={playbackRate}
+          onChange={(event) => changePlaybackRate(event.target.value)}
+          className="border-border bg-background rounded-md border px-2 py-1 text-xs"
+        >
+          <option value="0.75">0.75×</option>
+          <option value="1">Normal</option>
+          <option value="1.25">1.25×</option>
+          <option value="1.5">1.5×</option>
+          <option value="2">2×</option>
+        </select>
+      </div>
+    </div>
+  );
 }

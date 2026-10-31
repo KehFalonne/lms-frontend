@@ -7,6 +7,7 @@ import {
   createModule,
   deleteContentItem,
   getContentItem,
+  getContentProgress,
   getContentTree,
   getModuleContent,
   getModules,
@@ -39,11 +40,32 @@ export function useContentItem(contentId: string | null) {
 export function useMarkProgress(offeringId: string) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ contentId, status }: { contentId: string; status: ProgressStatus }) =>
-      setContentProgress(contentId, status),
-    onSuccess: () => {
+    mutationFn: ({
+      contentId,
+      status,
+      progressPercent,
+    }: {
+      contentId: string;
+      status: ProgressStatus;
+      progressPercent?: number;
+    }) => setContentProgress(contentId, status, progressPercent),
+    onSuccess: (_, variables) => {
       qc.invalidateQueries({ queryKey: ["content-tree", offeringId] });
+      qc.invalidateQueries({ queryKey: ["content-progress", variables.contentId] });
+      if (variables.status === "COMPLETED") {
+        toast.success("Content marked as complete.");
+      }
     },
+    onError: (error) => toast.error(normalizeError(error).message),
+  });
+}
+
+export function useContentProgress(contentId: string | null) {
+  return useQuery({
+    queryKey: ["content-progress", contentId],
+    queryFn: () => getContentProgress(contentId!),
+    enabled: Boolean(contentId),
+    staleTime: 30_000,
   });
 }
 
