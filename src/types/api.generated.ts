@@ -72,6 +72,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/auth/me/avatar/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch: operations["authMeAvatarPartialUpdate"];
+        trace?: never;
+    };
     "/api/v1/auth/change-password/": {
         parameters: {
             query?: never;
@@ -403,6 +419,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/course-offerings/{offeringId}/enrollment-request/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description POST /api/v1/course-offerings/{offering_id}/enrollment-request/ */
+        post: operations["courseOfferingsEnrollmentRequestCreate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/course-offerings/{offeringId}/enrollments/bulk/": {
         parameters: {
             query?: never;
@@ -435,6 +468,23 @@ export interface paths {
         options?: never;
         head?: never;
         patch?: never;
+        trace?: never;
+    };
+    "/api/v1/course-offerings/{offeringId}/enrollments/{studentId}/decision/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** @description PATCH /api/v1/course-offerings/{offering_id}/enrollments/{student_id}/decision/ */
+        patch: operations["courseOfferingsEnrollmentsDecisionPartialUpdate"];
         trace?: never;
     };
     "/api/v1/my/courses/": {
@@ -1436,6 +1486,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/question-banks/{bankId}/questions/import-word/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description POST /api/v1/question-banks/{bank_id}/questions/import-word/ */
+        post: operations["questionBanksQuestionsImportWordCreate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/question-banks/{bankId}/questions/import-answer-key/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description POST /api/v1/question-banks/{bank_id}/questions/import-answer-key/ */
+        post: operations["questionBanksQuestionsImportAnswerKeyCreate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/questions/{id}/": {
         parameters: {
             query?: never;
@@ -1545,7 +1629,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** @description POST /api/v1/assessments/{id}/publish/ */
+        /** @description POST /api/v1/assessments/{id}/publish/ — admins and staff only. */
         post: operations["assessmentsPublishCreate"];
         delete?: never;
         options?: never;
@@ -1722,8 +1806,8 @@ export interface paths {
         put?: never;
         /**
          * @description POST /api/v1/assessments/{id}/generate-code/
-         *     Staff/instructor only. Generates a new code and returns the raw value
-         *     (which the lecturer then shares with students).
+         *     Admin/staff/invigilator only. Generates a new code and returns the raw
+         *     value (which the invigilator then shares with students).
          */
         post: operations["assessmentsGenerateCodeCreate"];
         delete?: never;
@@ -1743,6 +1827,145 @@ export interface paths {
         put?: never;
         /** @description POST /api/v1/assessments/{id}/set-code/  Body: {code} */
         post: operations["assessmentsSetCodeCreate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ca-invigilators/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["caInvigilatorsRetrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ca-sessions/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["caSessionsRetrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/assessments/{id}/ca-invigilator/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch: operations["assessmentsCaInvigilatorPartialUpdate"];
+        trace?: never;
+    };
+    "/api/v1/assessments/{id}/ca-monitoring/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["assessmentsCaMonitoringRetrieve"];
+        put?: never;
+        post: operations["assessmentsCaMonitoringCreate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/assessment-attempts/{id}/proctoring-events/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description POST /api/v1/assessment-attempts/{id}/proctoring-events/
+         *       Body: { "eventType": "TAB_SWITCH", "detail": {...} }
+         *       Student-only — logs one integrity event for this attempt.
+         *
+         *     GET /api/v1/assessment-attempts/{id}/proctoring-events/
+         *       Lecturers/admins only — returns the full event log for this attempt.
+         */
+        get: operations["assessmentAttemptsProctoringEventsRetrieve"];
+        put?: never;
+        /**
+         * @description POST /api/v1/assessment-attempts/{id}/proctoring-events/
+         *       Body: { "eventType": "TAB_SWITCH", "detail": {...} }
+         *       Student-only — logs one integrity event for this attempt.
+         *
+         *     GET /api/v1/assessment-attempts/{id}/proctoring-events/
+         *       Lecturers/admins only — returns the full event log for this attempt.
+         */
+        post: operations["assessmentAttemptsProctoringEventsCreate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/assessments/{id}/attempts/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description GET /api/v1/assessments/{id}/attempts/
+         *     Lecturers/admins only — all attempts with proctoring counts.
+         */
+        get: operations["assessmentsAttemptsRetrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/assessment-attempts/{id}/heartbeat/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * @description POST /api/v1/assessment-attempts/{id}/heartbeat/
+         *
+         *     Called every 15s by the client. If the backend stops receiving heartbeats
+         *     while the attempt is still IN_PROGRESS, the lecturer review will see a
+         *     large gap — evidence the tab was backgrounded or the device went to sleep.
+         */
+        post: operations["assessmentAttemptsHeartbeatCreate"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2062,9 +2285,69 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get?: never;
-        /** @description PUT /api/v1/content/{content_id}/progress/ */
+        /** @description GET/PUT /api/v1/content/{content_id}/progress/ */
+        get: operations["contentProgressRetrieve"];
+        /** @description GET/PUT /api/v1/content/{content_id}/progress/ */
         put: operations["contentProgressUpdate"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/course-offerings/{offeringId}/content-progress/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Read-only content engagement report for course instructors. */
+        get: operations["courseOfferingsContentProgressRetrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/course-offerings/{offeringId}/analytics/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description GET /api/v1/course-offerings/{offering_id}/analytics/
+         *
+         *     Performance and engagement insights for the instructors of an offering.
+         */
+        get: operations["courseOfferingsAnalyticsRetrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/lecturer/analytics/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description GET /api/v1/lecturer/analytics/
+         *
+         *     Analytics aggregated across every offering the lecturer teaches.
+         */
+        get: operations["lecturerAnalyticsRetrieve"];
+        put?: never;
         post?: never;
         delete?: never;
         options?: never;
@@ -2161,6 +2444,23 @@ export interface paths {
         };
         /** @description GET /api/v1/admin/reports/overview/ */
         get: operations["adminReportsOverviewRetrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/audit-logs/facets/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description GET /api/v1/audit-logs/facets/ — distinct actions & entity types for filters. */
+        get: operations["auditLogsFacetsRetrieve"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2384,6 +2684,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/users/{id}/reset-password/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Allow an administrator to set a new password without exposing it. */
+        post: operations["usersResetPasswordCreate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/users/{id}/roles/{assignmentId}/": {
         parameters: {
             query?: never;
@@ -2517,7 +2834,7 @@ export interface components {
             /** Format: uuid */
             readonly id: string;
             /** Format: uuid */
-            courseOfferingId: string;
+            courseOfferingId?: string;
             title: string;
             description?: string;
             instructions?: string;
@@ -2566,7 +2883,8 @@ export interface components {
              * Code-gated
              * @description Require an access code to enter this assessment.
              */
-            isCodeGated?: boolean;
+            readonly isCodeGated: boolean;
+            readonly hasAccessCode: boolean;
             /**
              * Opens at
              * Format: date-time
@@ -2585,7 +2903,31 @@ export interface components {
              */
             serveQuestionCount?: number | null;
             randomizeQuestionOrder?: boolean;
-            readonly hasAccessCode: boolean;
+            /** @description Monitor tab switches, focus loss, and clipboard events. Events are logged for lecturer review — not used for auto-fail unless max_violations is set. */
+            proctoringEnabled?: boolean;
+            /**
+             * Max proctoring violations
+             * @description Apply the configured enforcement policy after this many violations. 0 = log only, never enforce.
+             */
+            proctoringMaxViolations?: number;
+            /**
+             * @description LOGGING: log violations, no auto-submit. LOCKDOWN: force fullscreen + cursor lock, block on exit.
+             *
+             *     * `LOGGING` - Logging only
+             *     * `LOCKDOWN` - Strict lockdown
+             * @enum {string}
+             */
+            proctoringMode?: "LOGGING" | "LOCKDOWN";
+            /**
+             * @description REVIEW_ONLY records violations for lecturer review. AUTO_SUBMIT submits the attempt when the threshold is reached.
+             *
+             *     * `REVIEW_ONLY` - Review only
+             *     * `AUTO_SUBMIT` - Automatically submit
+             * @enum {string}
+             */
+            proctoringEnforcement?: "REVIEW_ONLY" | "AUTO_SUBMIT";
+            /** Format: uuid */
+            invigilatorId?: string | null;
         };
         AssessmentQuestion: {
             /** Format: uuid */
@@ -2605,6 +2947,8 @@ export interface components {
             title: string;
             description?: string;
             instructions?: string;
+            readonly attachments: components["schemas"]["AssignmentFile"][];
+            attachmentFileIds?: string[];
             /** Format: decimal */
             maxScore?: string;
             /** Format: date-time */
@@ -2648,6 +2992,15 @@ export interface components {
             readonly createdAt: string;
             /** Format: date-time */
             readonly updatedAt: string;
+        };
+        AssignmentFile: {
+            /** Format: uuid */
+            readonly id: string;
+            /** Format: uuid */
+            readonly fileId: string;
+            readonly originalName: string;
+            readonly sizeBytes: number;
+            readonly mimeType: string;
         };
         AssignmentSubmission: {
             /** Format: uuid */
@@ -2700,6 +3053,7 @@ export interface components {
             readonly attemptNumber: number;
             /**
              * @description * `IN_PROGRESS` - In progress
+             *     * `PAUSED` - Paused by invigilator
              *     * `SUBMITTED` - Submitted
              *     * `AUTO_GRADED` - Auto-graded
              *     * `MANUAL_GRADING` - Pending manual grading
@@ -2708,7 +3062,7 @@ export interface components {
              *     * `INVALIDATED` - Invalidated
              * @enum {string}
              */
-            readonly status: "IN_PROGRESS" | "SUBMITTED" | "AUTO_GRADED" | "MANUAL_GRADING" | "GRADED" | "EXPIRED" | "INVALIDATED";
+            readonly status: "IN_PROGRESS" | "PAUSED" | "SUBMITTED" | "AUTO_GRADED" | "MANUAL_GRADING" | "GRADED" | "EXPIRED" | "INVALIDATED";
             /** Format: date-time */
             readonly startedAt: string;
             /** Format: date-time */
@@ -2740,6 +3094,7 @@ export interface components {
             readonly attemptNumber: number;
             /**
              * @description * `IN_PROGRESS` - In progress
+             *     * `PAUSED` - Paused by invigilator
              *     * `SUBMITTED` - Submitted
              *     * `AUTO_GRADED` - Auto-graded
              *     * `MANUAL_GRADING` - Pending manual grading
@@ -2748,7 +3103,7 @@ export interface components {
              *     * `INVALIDATED` - Invalidated
              * @enum {string}
              */
-            readonly status: "IN_PROGRESS" | "SUBMITTED" | "AUTO_GRADED" | "MANUAL_GRADING" | "GRADED" | "EXPIRED" | "INVALIDATED";
+            readonly status: "IN_PROGRESS" | "PAUSED" | "SUBMITTED" | "AUTO_GRADED" | "MANUAL_GRADING" | "GRADED" | "EXPIRED" | "INVALIDATED";
             /** Format: date-time */
             readonly startedAt: string;
             /** Format: date-time */
@@ -2769,6 +3124,12 @@ export interface components {
             /** Format: date-time */
             readonly updatedAt: string;
             readonly answers: components["schemas"]["StudentAnswer"][];
+            readonly caInvigilatorMessage: string;
+            /** Format: decimal */
+            readonly passingScore: string;
+            /** Format: decimal */
+            readonly totalPoints: string;
+            readonly passed: string;
         };
         AuditLog: {
             /** Format: uuid */
@@ -2828,7 +3189,7 @@ export interface components {
             /** Format: uuid */
             readonly id: string;
             /** Format: uuid */
-            courseModuleId?: string;
+            readonly courseModuleId: string;
             title: string;
             /**
              * @description * `TEXT` - Text
@@ -2844,14 +3205,36 @@ export interface components {
             contentType?: "TEXT" | "FILE" | "VIDEO" | "AUDIO" | "PDF" | "DOCUMENT" | "LINK" | "EMBED";
             description?: string;
             body?: string;
+            /** Audio transcript */
+            transcript?: string;
             /** Format: uri */
             externalUrl?: string;
+            /** @description Allow students to download attached audio files. */
+            allowDownload?: boolean;
+            /**
+             * Audio chapters
+             * @description Ordered audio chapters with title and startSeconds.
+             */
+            chapters?: unknown;
+            /**
+             * Attachment files
+             * @description Ready file IDs attached to the lesson.
+             */
+            attachmentIds?: unknown;
             /**
              * File
              * Format: uuid
              * @description Placeholder FK to File (Sprint 6).
              */
             fileId?: string | null;
+            readonly fileName: string;
+            readonly fileSizeBytes: string;
+            readonly fileMimeType: string;
+            readonly pdfVersionCount: string;
+            readonly pdfAccessibilityWarning: string;
+            readonly pdfVersions: string;
+            readonly audioVersionCount: string;
+            readonly audioVersions: string;
             position?: number;
             /** Required */
             isRequired?: boolean;
@@ -2949,7 +3332,7 @@ export interface components {
             /** Format: uuid */
             readonly id: string;
             /** Format: uuid */
-            courseOfferingId?: string;
+            readonly courseOfferingId: string;
             title: string;
             description?: string;
             position?: number;
@@ -2983,6 +3366,8 @@ export interface components {
             readonly programme: components["schemas"]["Programme"];
             /** Format: uuid */
             programmeId: string;
+            eligibleProgrammeIds?: string[];
+            readonly eligibleProgrammes: components["schemas"]["Programme"][];
             /** @default A */
             section: string;
             capacity?: number;
@@ -3265,6 +3650,23 @@ export interface components {
             /** @default  */
             feedback: string;
         };
+        LogProctoringEvent: {
+            /**
+             * @description * `TAB_SWITCH` - TAB_SWITCH
+             *     * `WINDOW_BLUR` - WINDOW_BLUR
+             *     * `FULLSCREEN_EXIT` - FULLSCREEN_EXIT
+             *     * `CONTEXT_MENU` - CONTEXT_MENU
+             *     * `COPY` - COPY
+             *     * `PASTE` - PASTE
+             *     * `HEARTBEAT_GAP` - HEARTBEAT_GAP
+             *     * `OTHER` - OTHER
+             * @enum {string}
+             */
+            eventType: "TAB_SWITCH" | "WINDOW_BLUR" | "FULLSCREEN_EXIT" | "CONTEXT_MENU" | "COPY" | "PASTE" | "HEARTBEAT_GAP" | "OTHER";
+            detail?: {
+                [key: string]: unknown;
+            };
+        };
         /**
          * @description Login payload — per backend doc §9.
          *
@@ -3302,10 +3704,12 @@ export interface components {
              *     * `ASSESSMENT` - Assessment
              *     * `GRADE` - Grade
              *     * `DISCUSSION` - Discussion
+             *     * `ENROLLMENT` - Enrollment
+             *     * `CA_INVIGILATOR_MESSAGE` - CA invigilator message
              *     * `SYSTEM` - System
              * @enum {string}
              */
-            readonly type: "ANNOUNCEMENT" | "ASSIGNMENT" | "ASSESSMENT" | "GRADE" | "DISCUSSION" | "SYSTEM";
+            readonly type: "ANNOUNCEMENT" | "ASSIGNMENT" | "ASSESSMENT" | "GRADE" | "DISCUSSION" | "ENROLLMENT" | "CA_INVIGILATOR_MESSAGE" | "SYSTEM";
             readonly title: string;
             readonly message: string;
             readonly entityType: string;
@@ -3544,7 +3948,8 @@ export interface components {
              * Code-gated
              * @description Require an access code to enter this assessment.
              */
-            isCodeGated?: boolean;
+            readonly isCodeGated?: boolean;
+            readonly hasAccessCode?: boolean;
             /**
              * Opens at
              * Format: date-time
@@ -3563,7 +3968,31 @@ export interface components {
              */
             serveQuestionCount?: number | null;
             randomizeQuestionOrder?: boolean;
-            readonly hasAccessCode?: boolean;
+            /** @description Monitor tab switches, focus loss, and clipboard events. Events are logged for lecturer review — not used for auto-fail unless max_violations is set. */
+            proctoringEnabled?: boolean;
+            /**
+             * Max proctoring violations
+             * @description Apply the configured enforcement policy after this many violations. 0 = log only, never enforce.
+             */
+            proctoringMaxViolations?: number;
+            /**
+             * @description LOGGING: log violations, no auto-submit. LOCKDOWN: force fullscreen + cursor lock, block on exit.
+             *
+             *     * `LOGGING` - Logging only
+             *     * `LOCKDOWN` - Strict lockdown
+             * @enum {string}
+             */
+            proctoringMode?: "LOGGING" | "LOCKDOWN";
+            /**
+             * @description REVIEW_ONLY records violations for lecturer review. AUTO_SUBMIT submits the attempt when the threshold is reached.
+             *
+             *     * `REVIEW_ONLY` - Review only
+             *     * `AUTO_SUBMIT` - Automatically submit
+             * @enum {string}
+             */
+            proctoringEnforcement?: "REVIEW_ONLY" | "AUTO_SUBMIT";
+            /** Format: uuid */
+            invigilatorId?: string | null;
         };
         PatchedAssessmentQuestion: {
             /** Format: uuid */
@@ -3583,6 +4012,8 @@ export interface components {
             title?: string;
             description?: string;
             instructions?: string;
+            readonly attachments?: components["schemas"]["AssignmentFile"][];
+            attachmentFileIds?: string[];
             /** Format: decimal */
             maxScore?: string;
             /** Format: date-time */
@@ -3662,7 +4093,7 @@ export interface components {
             /** Format: uuid */
             readonly id?: string;
             /** Format: uuid */
-            courseModuleId?: string;
+            readonly courseModuleId?: string;
             title?: string;
             /**
              * @description * `TEXT` - Text
@@ -3678,14 +4109,36 @@ export interface components {
             contentType?: "TEXT" | "FILE" | "VIDEO" | "AUDIO" | "PDF" | "DOCUMENT" | "LINK" | "EMBED";
             description?: string;
             body?: string;
+            /** Audio transcript */
+            transcript?: string;
             /** Format: uri */
             externalUrl?: string;
+            /** @description Allow students to download attached audio files. */
+            allowDownload?: boolean;
+            /**
+             * Audio chapters
+             * @description Ordered audio chapters with title and startSeconds.
+             */
+            chapters?: unknown;
+            /**
+             * Attachment files
+             * @description Ready file IDs attached to the lesson.
+             */
+            attachmentIds?: unknown;
             /**
              * File
              * Format: uuid
              * @description Placeholder FK to File (Sprint 6).
              */
             fileId?: string | null;
+            readonly fileName?: string;
+            readonly fileSizeBytes?: string;
+            readonly fileMimeType?: string;
+            readonly pdfVersionCount?: string;
+            readonly pdfAccessibilityWarning?: string;
+            readonly pdfVersions?: string;
+            readonly audioVersionCount?: string;
+            readonly audioVersions?: string;
             position?: number;
             /** Required */
             isRequired?: boolean;
@@ -3756,7 +4209,7 @@ export interface components {
             /** Format: uuid */
             readonly id?: string;
             /** Format: uuid */
-            courseOfferingId?: string;
+            readonly courseOfferingId?: string;
             title?: string;
             description?: string;
             position?: number;
@@ -3790,6 +4243,8 @@ export interface components {
             readonly programme?: components["schemas"]["Programme"];
             /** Format: uuid */
             programmeId?: string;
+            eligibleProgrammeIds?: string[];
+            readonly eligibleProgrammes?: components["schemas"]["Programme"][];
             /** @default A */
             section: string;
             capacity?: number;
@@ -4140,12 +4595,21 @@ export interface components {
             reason: string;
         };
         PatchedUserUpdate: {
+            /**
+             * Email address
+             * Format: email
+             */
+            email?: string;
+            /** @description Matricule (student) or staff number, e.g. GU2026001. */
+            universityId?: string;
             firstName?: string;
             middleName?: string;
             lastName?: string;
             phone?: string;
             /** @description Placeholder — will become a File FK in Sprint 6. */
             avatar?: string;
+            /** Format: uuid */
+            avatarFileId?: string | null;
             /**
              * @description * `PENDING` - Pending
              *     * `ACTIVE` - Active
@@ -4155,6 +4619,34 @@ export interface components {
              * @enum {string}
              */
             status?: "PENDING" | "ACTIVE" | "SUSPENDED" | "INACTIVE" | "LOCKED";
+            password?: string;
+            matriculeNumber?: string;
+            staffNumber?: string;
+            currentLevel?: number;
+            admissionYear?: number;
+            /** Format: uuid */
+            programmeId?: string | null;
+            /** Format: uuid */
+            departmentId?: string | null;
+            jobTitle?: string;
+            /**
+             * @description * `ACTIVE` - Acitve
+             *     * `On_LEAVE` - On leave
+             *     * `SUSPENDED` - Suspended
+             *     * `GRADUATED` - Graduated
+             *     * `WITHDRAWN` - Withdrawn
+             * @enum {string}
+             */
+            studentStatus?: "ACTIVE" | "On_LEAVE" | "SUSPENDED" | "GRADUATED" | "WITHDRAWN";
+            /** Format: date */
+            admissionDate?: string | null;
+            /**
+             * @description * `student` - student
+             *     * `staff` - staff
+             *     * `none` - none
+             * @enum {string}
+             */
+            profileType?: "student" | "staff" | "none";
         };
         Permission: {
             /** Format: uuid */
@@ -4409,6 +4901,7 @@ export interface components {
             /** Format: uuid */
             readonly department: string | null;
             readonly departmentId: string | null;
+            readonly facultyId: string | null;
             jobTitle?: string;
             /** Format: date-time */
             readonly createdAt: string;
@@ -4446,6 +4939,7 @@ export interface components {
             /** Format: uuid */
             readonly programme: string | null;
             readonly programmeId: string | null;
+            readonly facultyId: string | null;
             currentLevel?: number;
             admissionYear: number;
             /** Format: date */
@@ -4497,8 +4991,7 @@ export interface components {
             lastName: string;
             readonly fullName: string;
             phone?: string;
-            /** @description Placeholder — will become a File FK in Sprint 6. */
-            avatar?: string;
+            readonly avatar: string;
             /**
              * @description * `PENDING` - Pending
              *     * `ACTIVE` - Active
@@ -4529,6 +5022,8 @@ export interface components {
             readonly createdAt: string;
             /** Format: date-time */
             readonly updatedAt: string;
+            readonly studentProfile: components["schemas"]["StudentProfile"];
+            readonly staffProfile: components["schemas"]["StaffProfile"];
         };
         UserCreate: {
             /** Format: uuid */
@@ -4564,6 +5059,24 @@ export interface components {
             /** Format: uuid */
             departmentId?: string | null;
             jobTitle?: string;
+            /**
+             * @description * `ACTIVE` - Acitve
+             *     * `On_LEAVE` - On leave
+             *     * `SUSPENDED` - Suspended
+             *     * `GRADUATED` - Graduated
+             *     * `WITHDRAWN` - Withdrawn
+             * @enum {string}
+             */
+            studentStatus?: "ACTIVE" | "On_LEAVE" | "SUSPENDED" | "GRADUATED" | "WITHDRAWN";
+            /** Format: date */
+            admissionDate?: string | null;
+            /**
+             * @description * `student` - student
+             *     * `staff` - staff
+             *     * `none` - none
+             * @enum {string}
+             */
+            profileType?: "student" | "staff" | "none";
         };
         /** @description `/auth/me/` — includes roles and profiles. */
         UserMe: {
@@ -4581,7 +5094,6 @@ export interface components {
             readonly lastName: string;
             readonly fullName: string;
             readonly phone: string;
-            /** @description Placeholder — will become a File FK in Sprint 6. */
             readonly avatar: string;
             /**
              * @description * `PENDING` - Pending
@@ -4613,6 +5125,8 @@ export interface components {
             readonly createdAt: string;
             /** Format: date-time */
             readonly updatedAt: string;
+            readonly studentProfile: components["schemas"]["StudentProfile"];
+            readonly staffProfile: components["schemas"]["StaffProfile"];
             /**
              * Superuser status
              * @description Designates that this user has all permissions without explicitly assigning them.
@@ -4621,16 +5135,23 @@ export interface components {
             readonly roles: string[];
             readonly permissions: string[];
             readonly userRoles: string;
-            readonly studentProfile: components["schemas"]["StudentProfile"];
-            readonly staffProfile: components["schemas"]["StaffProfile"];
         };
         UserUpdate: {
+            /**
+             * Email address
+             * Format: email
+             */
+            email: string;
+            /** @description Matricule (student) or staff number, e.g. GU2026001. */
+            universityId: string;
             firstName: string;
             middleName?: string;
             lastName: string;
             phone?: string;
             /** @description Placeholder — will become a File FK in Sprint 6. */
             avatar?: string;
+            /** Format: uuid */
+            avatarFileId?: string | null;
             /**
              * @description * `PENDING` - Pending
              *     * `ACTIVE` - Active
@@ -4640,6 +5161,34 @@ export interface components {
              * @enum {string}
              */
             status?: "PENDING" | "ACTIVE" | "SUSPENDED" | "INACTIVE" | "LOCKED";
+            password?: string;
+            matriculeNumber?: string;
+            staffNumber?: string;
+            currentLevel?: number;
+            admissionYear?: number;
+            /** Format: uuid */
+            programmeId?: string | null;
+            /** Format: uuid */
+            departmentId?: string | null;
+            jobTitle?: string;
+            /**
+             * @description * `ACTIVE` - Acitve
+             *     * `On_LEAVE` - On leave
+             *     * `SUSPENDED` - Suspended
+             *     * `GRADUATED` - Graduated
+             *     * `WITHDRAWN` - Withdrawn
+             * @enum {string}
+             */
+            studentStatus?: "ACTIVE" | "On_LEAVE" | "SUSPENDED" | "GRADUATED" | "WITHDRAWN";
+            /** Format: date */
+            admissionDate?: string | null;
+            /**
+             * @description * `student` - student
+             *     * `staff` - staff
+             *     * `none` - none
+             * @enum {string}
+             */
+            profileType?: "student" | "staff" | "none";
         };
     };
     responses: never;
@@ -4734,6 +5283,24 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["UserMe"];
                 };
+            };
+        };
+    };
+    authMeAvatarPartialUpdate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -5830,6 +6397,26 @@ export interface operations {
             };
         };
     };
+    courseOfferingsEnrollmentRequestCreate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                offeringId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     courseOfferingsEnrollmentsBulkCreate: {
         parameters: {
             query?: never;
@@ -5871,6 +6458,27 @@ export interface operations {
         responses: {
             /** @description No response body */
             204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    courseOfferingsEnrollmentsDecisionPartialUpdate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                offeringId: string;
+                studentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            200: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -7917,6 +8525,46 @@ export interface operations {
             };
         };
     };
+    questionBanksQuestionsImportWordCreate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                bankId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    questionBanksQuestionsImportAnswerKeyCreate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                bankId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     questionsRetrieve: {
         parameters: {
             query?: never;
@@ -8480,6 +9128,190 @@ export interface operations {
             };
         };
     };
+    caInvigilatorsRetrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    caSessionsRetrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    assessmentsCaInvigilatorPartialUpdate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    assessmentsCaMonitoringRetrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    assessmentsCaMonitoringCreate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    assessmentAttemptsProctoringEventsRetrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LogProctoringEvent"];
+                };
+            };
+        };
+    };
+    assessmentAttemptsProctoringEventsCreate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LogProctoringEvent"];
+                "application/x-www-form-urlencoded": components["schemas"]["LogProctoringEvent"];
+                "multipart/form-data": components["schemas"]["LogProctoringEvent"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LogProctoringEvent"];
+                };
+            };
+        };
+    };
+    assessmentsAttemptsRetrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    assessmentAttemptsHeartbeatCreate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     courseOfferingsGradeCategoriesRetrieve: {
         parameters: {
             query?: never;
@@ -8991,6 +9823,26 @@ export interface operations {
             };
         };
     };
+    contentProgressRetrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                contentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     contentProgressUpdate: {
         parameters: {
             query?: never;
@@ -8998,6 +9850,64 @@ export interface operations {
             path: {
                 contentId: string;
             };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    courseOfferingsContentProgressRetrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                offeringId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    courseOfferingsAnalyticsRetrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                offeringId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    lecturerAnalyticsRetrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
             cookie?: never;
         };
         requestBody?: never;
@@ -9102,6 +10012,24 @@ export interface operations {
         };
     };
     adminReportsOverviewRetrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    auditLogsFacetsRetrieve: {
         parameters: {
             query?: never;
             header?: never;
@@ -9504,6 +10432,34 @@ export interface operations {
             cookie?: never;
         };
         requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["User"];
+                };
+            };
+        };
+    };
+    usersResetPasswordCreate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description A UUID string identifying this user. */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["User"];
+                "application/x-www-form-urlencoded": components["schemas"]["User"];
+                "multipart/form-data": components["schemas"]["User"];
+            };
+        };
         responses: {
             200: {
                 headers: {

@@ -1,5 +1,8 @@
 @import "tailwindcss";
 
+/* Keep Tailwind dark: utilities aligned with the application's theme toggle. */
+@custom-variant dark (&:where(.dark, .dark *));
+
 /* ──────────────────────────────────────────────────────────────────
    Theme tokens → v4 utilities
    Map every custom color to a v4 color token so components can keep
@@ -33,6 +36,7 @@
 
   --animate-fade-in: fade-in 150ms ease-out;
   --animate-slide-in: slide-in 200ms ease-out;
+  --animate-notification-drop: notification-drop 360ms cubic-bezier(0.16, 1, 0.3, 1);
 
   @keyframes fade-in {
     from {
@@ -52,6 +56,18 @@
 
     to {
       transform: translateY(0);
+      opacity: 1;
+    }
+  }
+
+  @keyframes notification-drop {
+    from {
+      transform: translateY(-0.625rem) scale(0.97);
+      opacity: 0;
+    }
+
+    to {
+      transform: translateY(0) scale(1);
       opacity: 1;
     }
   }
@@ -110,7 +126,6 @@
     -webkit-text-size-adjust: 100%;
     text-size-adjust: 100%;
     overflow-x: clip;
-    scroll-behavior: smooth;
   }
 
   body {
@@ -129,7 +144,6 @@
   .overflow-y-scroll {
     -webkit-overflow-scrolling: touch;
     overscroll-behavior-y: contain;
-    scroll-behavior: smooth;
   }
 
   /* Prevent iOS auto-zoom on focus (inputs must be ≥16px) */
@@ -164,6 +178,19 @@
 }
 
 @layer components {
+  .course-code {
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+
+  .course-code-badge {
+    min-width: 0;
+    max-width: 100%;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+
   .lesson-content {
     color: hsl(var(--foreground));
     line-height: 1.8;
@@ -189,13 +216,30 @@
     line-height: 1.3;
   }
 
-  .lesson-content h1 { font-size: 2rem; }
-  .lesson-content h2 { font-size: 1.5rem; }
-  .lesson-content h3 { font-size: 1.2rem; }
+  .lesson-content h1 {
+    font-size: 2rem;
+  }
 
-  .lesson-content strong { font-weight: 700; }
-  .lesson-content em { font-style: italic; }
-  .lesson-content u { text-decoration: underline; text-underline-offset: 2px; }
+  .lesson-content h2 {
+    font-size: 1.5rem;
+  }
+
+  .lesson-content h3 {
+    font-size: 1.2rem;
+  }
+
+  .lesson-content strong {
+    font-weight: 700;
+  }
+
+  .lesson-content em {
+    font-style: italic;
+  }
+
+  .lesson-content u {
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
 
   .lesson-content ul,
   .lesson-content ol {
@@ -203,8 +247,13 @@
     padding-left: 1.5rem;
   }
 
-  .lesson-content ul { list-style: disc; }
-  .lesson-content ol { list-style: decimal; }
+  .lesson-content ul {
+    list-style: disc;
+  }
+
+  .lesson-content ol {
+    list-style: decimal;
+  }
 
   .lesson-content blockquote {
     margin: 1rem 0;
@@ -256,6 +305,12 @@
   .scroll-fade-r {
     background: linear-gradient(to right, transparent 0%, hsl(var(--background)) 90%);
   }
+
+  /* Skip rendering/painting for off-screen list items — keeps long pages at 60fps. */
+  .cv-auto {
+    content-visibility: auto;
+    contain-intrinsic-size: auto 80px;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -278,6 +333,57 @@
   .overflow-y-scroll {
     scroll-behavior: auto !important;
   }
+}
+
+/* ─── Auth experience entrance — subtle rise + deblur, staggered ────────── */
+@keyframes auth-rise {
+  from {
+    opacity: 0;
+    transform: translateY(16px) scale(0.985);
+    filter: blur(6px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: blur(0);
+  }
+}
+
+.auth-rise {
+  animation: auth-rise 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.auth-rise-delay-1 {
+  animation-delay: 90ms;
+}
+
+.auth-rise-delay-2 {
+  animation-delay: 190ms;
+}
+
+.auth-rise-delay-3 {
+  animation-delay: 270ms;
+}
+
+/* ─── Landing — gentle levitation for product cards ─────────────────────── */
+@keyframes landing-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-12px);
+  }
+}
+
+.landing-float {
+  animation: landing-float 7s ease-in-out infinite;
+}
+
+.landing-float-slow {
+  animation: landing-float 9s ease-in-out 1.2s infinite;
 }
 
 @media print {

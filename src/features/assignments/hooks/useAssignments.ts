@@ -101,6 +101,25 @@ export function useCreateAssignment(offeringId: string) {
   });
 }
 
+export function useUpdateAssignment(offeringId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      id,
+      payload,
+    }: {
+      id: string;
+      payload: Partial<CreateAssignmentPayload>;
+    }) => updateAssignment(id, payload),
+    onSuccess: () => {
+      toast.success("Assignment updated");
+      qc.invalidateQueries({ queryKey: ["course-assignments", offeringId] });
+      qc.invalidateQueries({ queryKey: ["assignment"] });
+    },
+    onError: (err) => toast.error(normalizeError(err).message),
+  });
+}
+
 export function usePublishAssignment(offeringId: string) {
   const qc = useQueryClient();
   return useMutation({

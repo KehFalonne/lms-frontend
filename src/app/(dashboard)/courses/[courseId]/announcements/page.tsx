@@ -11,6 +11,7 @@ import {
 import { EmptyState } from "@/components/ui/empty-state";
 import { ErrorState } from "@/components/ui/error-state";
 import { Skeleton } from "@/components/ui/skeleton";
+import { cn } from "@/lib/utils/cn";
 
 export default function CourseAnnouncementsPage({
   params,
@@ -28,11 +29,23 @@ export default function CourseAnnouncementsPage({
     announcements.filter((a) => !a.isRead).forEach((a) => markRead.mutate(a.id));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [announcements.length]);
+
+  const unread = announcements.filter((a) => !a.isRead).length;
+  const pinned = announcements.filter((a) => a.isPinned).length;
+
+  // Pinned first, then newest
+  const ordered = [...announcements].sort((a, b) => {
+    if (Boolean(a.isPinned) !== Boolean(b.isPinned)) return a.isPinned ? -1 : 1;
+    const ta = new Date(a.publishAt ?? a.createdAt).getTime();
+    const tb = new Date(b.publishAt ?? b.createdAt).getTime();
+    return tb - ta;
+  });
+
   if (isLoading) {
     return (
       <div className="space-y-3">
-        <Skeleton className="h-32 w-full" />
-        <Skeleton className="h-32 w-full" />
+        <Skeleton className="h-32 w-full rounded-2xl" />
+        <Skeleton className="h-32 w-full rounded-2xl" />
       </div>
     );
   }
@@ -51,9 +64,40 @@ export default function CourseAnnouncementsPage({
 
   return (
     <div className="space-y-3">
-      {announcements.map((a) => (
+      {/* Summary strip */}
+      <div className="flex flex-wrap items-center gap-1.5">
+        <SummaryChip label="Total" value={announcements.length} tone="primary" />
+        <SummaryChip label="Pinned" value={pinned} tone="warning" />
+        <SummaryChip label="New" value={unread} tone="info" />
+      </div>
+
+      {ordered.map((a) => (
         <AnnouncementCard key={a.id} announcement={a} />
       ))}
     </div>
+  );
+}
+
+function SummaryChip({
+  label,
+  value,
+  tone,
+}: {
+  label: string;
+  value: number;
+  tone: "primary" | "warning" | "info";
+}) {
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] ring-1",
+        tone === "primary" && "bg-primary/10 text-primary ring-primary/20",
+        tone === "warning" && "bg-warning/10 text-warning ring-warning/25",
+        tone === "info" && "bg-info/10 text-info ring-info/20",
+      )}
+    >
+      {label}
+      <span className="tabular-nums opacity-80">{value}</span>
+    </span>
   );
 }

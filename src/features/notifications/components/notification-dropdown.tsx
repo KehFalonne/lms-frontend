@@ -1,24 +1,31 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { Bell } from "lucide-react";
+import { usePathname } from "next/navigation";
+import { Bell, CheckCheck } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { NotificationItem } from "./notification-item";
 import {
   useMarkRead,
+  useMarkAllRead,
   useNotifications,
   useUnreadNotificationsCount,
 } from "../hooks/useNotifications";
 
 export function NotificationDropdown() {
+  const pathname = usePathname();
+  const notificationsHref = pathname.startsWith("/invigilator")
+    ? "/invigilator/notifications"
+    : "/notifications";
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
   const countQuery = useUnreadNotificationsCount();
   const listQuery = useNotifications();
   const markRead = useMarkRead();
+  const markAll = useMarkAllRead();
 
   const unreadCount = countQuery.data ?? 0;
   const notifications = (listQuery.data?.data ?? []).slice(0, 5);
@@ -55,7 +62,19 @@ export function NotificationDropdown() {
           <div className="border-border flex items-center justify-between border-b px-4 py-3">
             <p className="text-sm font-semibold">Notifications</p>
             {unreadCount > 0 && (
-              <span className="text-muted-foreground text-xs">{unreadCount} unread</span>
+              <div className="flex items-center gap-2">
+                <span className="text-muted-foreground text-xs">{unreadCount} unread</span>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 px-2 text-xs"
+                  onClick={() => markAll.mutate()}
+                  loading={markAll.isPending}
+                >
+                  <CheckCheck className="mr-1 h-3.5 w-3.5" />
+                  Read all
+                </Button>
+              </div>
             )}
           </div>
 
@@ -87,7 +106,7 @@ export function NotificationDropdown() {
 
           <div className="border-border border-t p-2">
             <Link
-              href="/notifications"
+              href={notificationsHref}
               onClick={() => setOpen(false)}
               className="text-primary hover:bg-surface block w-full rounded-sm px-3 py-2 text-center text-sm"
             >

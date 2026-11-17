@@ -1,4 +1,4 @@
-import { get, post } from "@/lib/api/client";
+import { get, patch, post } from "@/lib/api/client";
 import { endpoints } from "@/lib/api/endpoints";
 import type { ApiResponse } from "@/types/api.types";
 import type {
@@ -15,6 +15,10 @@ export async function login(payload: LoginRequest) {
 
 export async function me() {
   return get<ApiResponse<AuthUser>>(endpoints.auth.me);
+}
+
+export async function updateAvatar(fileId: string) {
+  return patch<ApiResponse<AuthUser>>(endpoints.auth.avatar, { fileId });
 }
 
 export async function logout(refresh: string) {

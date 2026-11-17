@@ -1,16 +1,18 @@
 "use client";
 import { use, useMemo, useState } from "react";
-import { Activity, Download } from "lucide-react";
+import { Activity, CheckCircle2, CircleDashed, Clock, Download, Search } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 
 import { Badge } from "@/components/ui/badge";
-import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ErrorState } from "@/components/ui/error-state";
+import { GlassCard, PanelHeader } from "@/components/ui/glass-card";
+import { Input } from "@/components/ui/input";
+import { Select } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
+import { StatCard } from "@/components/ui/stat-card";
 import { getLecturerContentProgress } from "@/features/content/api/content.api";
-import { get } from "@/lib/api/client";
-import type { ApiResponse } from "@/types/api.types";
 
 type ReportRow =
   Awaited<ReturnType<typeof getLecturerContentProgress>> extends {
@@ -136,7 +138,7 @@ export default function LecturerContentProgressPage({
     URL.revokeObjectURL(url);
   }
 
-  if (query.isLoading) return <Skeleton className="h-96 w-full" />;
+  if (query.isLoading) return <Skeleton className="h-96 w-full rounded-2xl" />;
   if (query.isError) {
     return (
       <ErrorState
@@ -149,85 +151,118 @@ export default function LecturerContentProgressPage({
 
   return (
     <div className="space-y-4">
-      <div>
-        <h2 className="text-lg font-semibold">Content progress</h2>
-        <p className="text-muted-foreground mt-1 text-sm">
+      <header>
+        <p className="text-primary flex items-center gap-2 text-[10px] font-semibold tracking-[0.22em] uppercase">
+          <span aria-hidden className="bg-primary/50 h-px w-6" />
+          Learning evidence
+        </p>
+        <h2 className="mt-2 text-xl font-semibold tracking-tight">Content progress</h2>
+        <p className="text-muted-foreground mt-1 max-w-md text-sm leading-6">
           Review student engagement and completion evidence. This does not create academic
           marks.
         </p>
-      </div>
+      </header>
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-        {[
-          ["Records", summary.total],
-          ["Completed", summary.completed],
-          ["In progress", summary.inProgress],
-          ["Not started", summary.notStarted],
-          ["Average progress", `${summary.average}%`],
-        ].map(([label, value]) => (
-          <Card key={String(label)} className="p-4">
-            <p className="text-muted-foreground text-xs">{label}</p>
-            <p className="mt-1 text-2xl font-semibold">{value}</p>
-          </Card>
-        ))}
+        <StatCard
+          icon={Activity}
+          tone="info"
+          label="Records"
+          value={summary.total}
+          caption="filtered progress rows"
+        />
+        <StatCard
+          icon={CheckCircle2}
+          tone="success"
+          label="Completed"
+          value={summary.completed}
+          caption="items fully completed"
+        />
+        <StatCard
+          icon={Clock}
+          tone="primary"
+          label="In progress"
+          value={summary.inProgress}
+          caption="started, not finished"
+        />
+        <StatCard
+          icon={CircleDashed}
+          tone="warning"
+          label="Not started"
+          value={summary.notStarted}
+          caption="not yet opened"
+        />
+        <StatCard
+          icon={Activity}
+          tone="success"
+          label="Avg progress"
+          value={`${summary.average}%`}
+          caption="across filtered rows"
+          progress={summary.average}
+        />
       </div>
 
-      <Card className="flex flex-wrap gap-3 p-4">
-        <input
-          value={search}
-          onChange={(event) => setSearch(event.target.value)}
-          placeholder="Search student or content"
-          className="border-border bg-background min-w-56 rounded-md border px-3 py-2 text-sm"
-        />
-        <select
-          value={moduleId}
-          onChange={(event) => setModuleId(event.target.value)}
-          className="border-border bg-background rounded-md border px-3 py-2 text-sm"
-        >
-          <option value="all">All modules</option>
-          {report?.modules.map((module) => (
-            <option key={module.id} value={module.id}>
-              {module.title}
-            </option>
-          ))}
-        </select>
-        <select
-          value={status}
-          onChange={(event) => setStatus(event.target.value)}
-          className="border-border bg-background rounded-md border px-3 py-2 text-sm"
-        >
-          <option value="all">All statuses</option>
-          {Object.entries(statusLabels).map(([value, label]) => (
-            <option key={value} value={value}>
-              {label}
-            </option>
-          ))}
-        </select>
-        <select
-          value={studentId}
-          onChange={(event) => setStudentId(event.target.value)}
-          className="border-border bg-background rounded-md border px-3 py-2 text-sm"
-        >
-          <option value="all">All students</option>
-          {students.map((student) => (
-            <option key={student.id} value={student.id}>
-              {student.name} ({student.number})
-            </option>
-          ))}
-        </select>
-        <button
-          type="button"
-          onClick={exportCsv}
-          disabled={rows.length === 0}
-          className="border-border hover:bg-muted inline-flex items-center gap-2 rounded-md border px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          <Download className="h-4 w-4" />
-          Export CSV
-        </button>
-      </Card>
+      <GlassCard>
+        <PanelHeader icon={Search} tone="primary" title="Filter records" />
+        <div className="flex flex-wrap items-center gap-3 px-5 pb-5">
+          <Input
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            placeholder="Search student or content"
+            className="min-w-56 max-w-xs"
+            aria-label="Search student or content"
+          />
+          <Select
+            value={moduleId}
+            onChange={(event) => setModuleId(event.target.value)}
+            className="w-44"
+            options={[
+              { value: "all", label: "All modules" },
+              ...(report?.modules.map((module) => ({
+                value: module.id,
+                label: module.title,
+              })) ?? []),
+            ]}
+            aria-label="Filter by module"
+          />
+          <Select
+            value={status}
+            onChange={(event) => setStatus(event.target.value)}
+            className="w-40"
+            options={[
+              { value: "all", label: "All statuses" },
+              ...Object.entries(statusLabels).map(([value, label]) => ({ value, label })),
+            ]}
+            aria-label="Filter by status"
+          />
+          <Select
+            value={studentId}
+            onChange={(event) => setStudentId(event.target.value)}
+            className="w-56"
+            options={[
+              { value: "all", label: "All students" },
+              ...students.map((student) => ({
+                value: student.id,
+                label: `${student.name} (${student.number})`,
+              })),
+            ]}
+            aria-label="Filter by student"
+          />
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={exportCsv}
+            disabled={rows.length === 0}
+            className="ml-auto"
+          >
+            <Download className="mr-1.5 h-4 w-4" /> Export CSV
+          </Button>
+        </div>
+      </GlassCard>
 
       {selectedStudent && (
-        <Card className="border-primary/20 bg-primary/5 p-4">
+        <div className="border-primary/20 bg-primary/5 rounded-2xl border p-4">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
               <p className="text-sm font-semibold">{selectedStudent.name}</p>
@@ -245,7 +280,7 @@ export default function LecturerContentProgressPage({
               </p>
             </div>
           </div>
-        </Card>
+        </div>
       )}
 
       {rows.length === 0 ? (
@@ -255,9 +290,9 @@ export default function LecturerContentProgressPage({
           description="Published content and enrolled students will appear here."
         />
       ) : (
-        <Card className="overflow-x-auto">
+        <GlassCard className="overflow-x-auto">
           <table className="w-full min-w-[850px] text-sm">
-            <thead className="border-border bg-surface/60 border-b">
+            <thead className="border-border/70 bg-surface/60 border-b">
               <tr>
                 <th className="text-muted-foreground px-4 py-3 text-left text-xs uppercase">
                   Student
@@ -282,7 +317,7 @@ export default function LecturerContentProgressPage({
                 </th>
               </tr>
             </thead>
-            <tbody className="divide-border divide-y">
+            <tbody className="divide-border/70 divide-y">
               {rows.map((row) => (
                 <tr key={`${row.studentId}-${row.contentId}`}>
                   <td className="px-4 py-3">
@@ -334,7 +369,7 @@ export default function LecturerContentProgressPage({
               ))}
             </tbody>
           </table>
-        </Card>
+        </GlassCard>
       )}
     </div>
   );

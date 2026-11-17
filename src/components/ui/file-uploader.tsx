@@ -31,6 +31,7 @@ interface FileUploaderProps {
   onChange: (files: UploadedFile[]) => void;
   accept?: string;
   maxFiles?: number;
+  prefix?: string;
 }
 
 let LOCAL_ID = 0;
@@ -41,6 +42,7 @@ export function FileUploader({
   onChange,
   accept,
   maxFiles = 10,
+  prefix = "uploads",
 }: FileUploaderProps) {
   const [dragging, setDragging] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -79,7 +81,7 @@ export function FileUploader({
               f.localId === entryId ? { ...f, progress: pct } : f
             )
           );
-        });
+        }, prefix);
 
         if (!fileId) {
           update(
@@ -115,7 +117,7 @@ export function FileUploader({
         );
       }
     },
-    [update]
+    [update, prefix]
   );
 
   const addFiles = useCallback(

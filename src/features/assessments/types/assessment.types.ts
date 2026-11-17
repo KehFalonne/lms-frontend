@@ -125,6 +125,7 @@ export interface AttemptLive {
 export interface AttemptResult {
   id: string;
   assessment: string;
+  assessmentTitle: string;
   attemptNumber: number;
   status: AttemptStatus;
   startedAt: string;
@@ -132,4 +133,7 @@ export interface AttemptResult {
   totalScore: string;
   percentage: string;
   gradedAt: string | null;
+  passingScore: string;
+  totalPoints: string;
+  passed: boolean | null;
 }

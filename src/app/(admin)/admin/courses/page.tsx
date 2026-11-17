@@ -1,7 +1,9 @@
 "use client";
-import { BookOpen } from "lucide-react";
+import Link from "next/link";
+import { BookOpen, Layers } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { AuthGate } from "@/components/layout/auth-gate";
+import { Button } from "@/components/ui/button";
 import { ResourceTable } from "@/features/admin/components/resource-table";
 import { get } from "@/lib/api/client";
 import type { ApiResponse } from "@/types/api.types";
@@ -32,6 +34,24 @@ export default function CoursesPage() {
 
   return (
     <AuthGate requiredRoles={ADMIN_ROLES}>
+      <div className="border-primary/20 bg-primary/5 mb-4 flex flex-col gap-3 rounded-xl border p-4 text-sm sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <p className="text-primary font-semibold">
+            Manage Course Delivery & Instructors
+          </p>
+          <p className="text-muted-foreground mt-0.5 text-xs">
+            This catalog defines base courses. To schedule semester offerings, section
+            capacities, and assign teaching staff, use Course Offerings.
+          </p>
+        </div>
+        <Link href="/admin/course-offerings">
+          <Button size="sm">
+            <Layers className="mr-1.5 h-4 w-4" />
+            Course Offerings & Staffing
+          </Button>
+        </Link>
+      </div>
+
       <ResourceTable<Course>
         title="Courses"
         description="Course catalogue."

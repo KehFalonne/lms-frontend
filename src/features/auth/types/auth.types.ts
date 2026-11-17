@@ -13,6 +13,7 @@ export type UserRole =
 export interface StudentProfile {
   id: string;
   matriculeNumber: string;
+  programmeId: string | null;
   currentLevel: number;
   admissionYear: number;
   status: string;

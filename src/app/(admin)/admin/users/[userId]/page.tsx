@@ -1,7 +1,7 @@
 "use client";
 import { use, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, ShieldCheck, Trash2, UserCheck, UserX } from "lucide-react";
+import { ArrowLeft, KeyRound, ShieldCheck, Trash2, UserCheck, UserX } from "lucide-react";
 
 import { AuthGate } from "@/components/layout/auth-gate";
 import { PageHeader } from "@/components/layout/page-header";
@@ -13,6 +13,7 @@ import { Dialog } from "@/components/ui/dialog";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ErrorState } from "@/components/ui/error-state";
 import { Select } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   useActivateUser,
@@ -20,11 +21,13 @@ import {
   useAssignUserRole,
   useDeactivateUser,
   useRevokeUserRole,
+  useResetUserPassword,
   useUserRoles,
 } from "@/features/admin/hooks/useAdminUsers";
 import { useRoles } from "@/features/admin/hooks/useAdminRoles";
 import { ADMIN_ROLES } from "@/lib/constants/routes";
 import { formatDateTime } from "@/lib/utils/format";
+import { UserFormDialog } from "@/features/admin/components/user-form-dialog";
 
 export default function AdminUserDetailPage({
   params,
@@ -50,6 +53,10 @@ function UserDetailContent({ params }: { params: Promise<{ userId: string }> }) 
 
   const [assignOpen, setAssignOpen] = useState(false);
   const [selectedRoleId, setSelectedRoleId] = useState("");
+  const [resetOpen, setResetOpen] = useState(false);
+  const [newPassword, setNewPassword] = useState("");
+  const [passwordConfirmation, setPasswordConfirmation] = useState("");
+  const resetPassword = useResetUserPassword(userId);
 
   const user = userQ.data?.data;
   const assignments = rolesQ.data?.data ?? [];
@@ -86,6 +93,11 @@ function UserDetailContent({ params }: { params: Promise<{ userId: string }> }) 
         description={`${user.universityId} · ${user.email}`}
         actions={
           <>
+            <UserFormDialog user={user} />
+            <Button variant="outline" onClick={() => setResetOpen(true)}>
+              <KeyRound className="mr-1.5 h-4 w-4" />
+              Reset password
+            </Button>
             {user.isActive ? (
               <Button
                 variant="outline"
@@ -121,6 +133,7 @@ function UserDetailContent({ params }: { params: Promise<{ userId: string }> }) 
                 {user.status}
               </Badge>
               {user.isStaff && <Badge variant="outline">Staff</Badge>}
+              {user.studentProfile && <Badge variant="outline">Student</Badge>}
             </div>
           </CardContent>
         </Card>
@@ -203,6 +216,60 @@ function UserDetailContent({ params }: { params: Promise<{ userId: string }> }) 
       </Card>
 
       <Dialog
+        open={resetOpen}
+        onClose={() => !resetPassword.isPending && setResetOpen(false)}
+        title="Reset password"
+        description={`Set a new password for ${user.firstName} ${user.lastName}. Existing sessions will be signed out.`}
+        footer={
+          <>
+            <Button variant="outline" onClick={() => setResetOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              loading={resetPassword.isPending}
+              disabled={newPassword.length < 8 || newPassword !== passwordConfirmation}
+              onClick={() =>
+                resetPassword.mutate(
+                  { password: newPassword, passwordConfirmation },
+                  {
+                    onSuccess: () => {
+                      setNewPassword("");
+                      setPasswordConfirmation("");
+                      setResetOpen(false);
+                    },
+                  }
+                )
+              }
+            >
+              Reset password
+            </Button>
+          </>
+        }
+      >
+        <div className="space-y-3">
+          <div>
+            <label className="mb-1.5 block text-sm font-medium">New password</label>
+            <Input
+              type="password"
+              value={newPassword}
+              onChange={(event) => setNewPassword(event.target.value)}
+              placeholder="At least 8 characters"
+            />
+          </div>
+          <div>
+            <label className="mb-1.5 block text-sm font-medium">
+              Confirm new password
+            </label>
+            <Input
+              type="password"
+              value={passwordConfirmation}
+              onChange={(event) => setPasswordConfirmation(event.target.value)}
+            />
+          </div>
+        </div>
+      </Dialog>
+
+      <Dialog
         open={assignOpen}
         onClose={() => !assign.isPending && setAssignOpen(false)}
         title="Assign role"
@@ -238,16 +305,28 @@ function UserDetailContent({ params }: { params: Promise<{ userId: string }> }) 
               value={selectedRoleId}
               onChange={(e) => setSelectedRoleId(e.target.value)}
               placeholder="Select a role"
-              options={allRoles.map((r) => ({
-                value: r.id,
-                label: `${r.name} (${r.code})`,
-              }))}
+              options={allRoles
+                .filter(
+                  (r) =>
+                    !user.studentProfile ||
+                    !["LECTURER", "TEACHING_ASSISTANT"].includes(r.code)
+                )
+                .map((r) => ({
+                  value: r.id,
+                  label: `${r.name} (${r.code})`,
+                }))}
             />
           </div>
           <p className="text-muted-foreground text-xs">
             Scoped roles (faculty, department, course) arrive in Sprint 10B. For now, all
             roles are assigned at the global scope.
           </p>
+          {user.studentProfile && (
+            <p className="text-muted-foreground text-xs">
+              Teaching roles (Lecturer, Teaching Assistant) are not available for student
+              profiles.
+            </p>
+          )}
         </div>
       </Dialog>
     </div>

@@ -1,16 +1,19 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useForm, type SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Plus } from "lucide-react";
+import { Paperclip, Plus } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select } from "@/components/ui/select";
-import { useCreateAssignment } from "../hooks/useAssignments";
+import { FileUploader, type UploadedFile } from "@/components/ui/file-uploader";
+import { formatBytes } from "@/lib/utils/format";
+import { useCreateAssignment, useUpdateAssignment } from "../hooks/useAssignments";
+import type { AssignmentDetail } from "../types/assignment.types";
 
 const schema = z.object({
   title: z.string().min(3, "Title is required"),
@@ -26,9 +29,21 @@ const schema = z.object({
 type FormInput = z.input<typeof schema>;
 type FormOutput = z.output<typeof schema>;
 
-export function AssignmentFormDialog({ offeringId }: { offeringId: string }) {
+export function AssignmentFormDialog({
+  offeringId,
+  assignment,
+  onEditClosed,
+}: {
+  offeringId: string;
+  assignment?: AssignmentDetail | null;
+  onEditClosed?: () => void;
+}) {
   const [open, setOpen] = useState(false);
+  const [questionFiles, setQuestionFiles] = useState<UploadedFile[]>([]);
   const create = useCreateAssignment(offeringId);
+  const update = useUpdateAssignment(offeringId);
+  const isEditing = !!assignment;
+  const isPending = create.isPending || update.isPending;
 
   const {
     register,
@@ -49,20 +64,52 @@ export function AssignmentFormDialog({ offeringId }: { offeringId: string }) {
     },
   });
 
+  useEffect(() => {
+    if (!assignment) return;
+    reset({
+      title: assignment.title,
+      description: assignment.description ?? "",
+      instructions: assignment.instructions ?? "",
+      maxScore: assignment.maxScore,
+      dueAt: toLocalInput(assignment.dueAt),
+      submissionType: assignment.submissionType,
+      maxAttempts: assignment.maxAttempts,
+      allowLateSubmission: assignment.allowLateSubmission,
+    });
+    setQuestionFiles([]);
+    setOpen(true);
+  }, [assignment, reset]);
+
+  const close = () => {
+    if (isPending) return;
+    setOpen(false);
+    if (isEditing) {
+      reset();
+      onEditClosed?.();
+    }
+  };
+
   const onSubmit: SubmitHandler<FormOutput> = (data) => {
-    create.mutate(
-      {
-        ...data,
-        title: data.title.trim(),
-        dueAt: new Date(data.dueAt).toISOString(),
-      },
-      {
-        onSuccess: () => {
-          setOpen(false);
-          reset();
-        },
-      }
-    );
+    const attachmentFileIds = questionFiles
+      .filter((f) => f.status === "done" && f.fileId)
+      .map((f) => f.fileId as string);
+    const payload = {
+      ...data,
+      title: data.title.trim(),
+      dueAt: new Date(data.dueAt).toISOString(),
+      ...(attachmentFileIds.length > 0 ? { attachmentFileIds } : {}),
+    };
+    const onSuccess = () => {
+      setOpen(false);
+      reset();
+      setQuestionFiles([]);
+      onEditClosed?.();
+    };
+    if (isEditing && assignment) {
+      update.mutate({ id: assignment.id, payload }, { onSuccess });
+    } else {
+      create.mutate(payload, { onSuccess });
+    }
   };
 
   return (
@@ -73,22 +120,22 @@ export function AssignmentFormDialog({ offeringId }: { offeringId: string }) {
 
       <Dialog
         open={open}
-        onClose={() => !create.isPending && setOpen(false)}
-        title="New Assignment"
-        description="It starts as a draft. Publish it after review."
+        onClose={close}
+        title={isEditing ? "Edit Assignment" : "New Assignment"}
+        description={
+          isEditing
+            ? "Changes save immediately and are visible to students."
+            : "It starts as a draft. Publish it after review."
+        }
         size="lg"
-        locked={create.isPending}
+        locked={isPending}
         footer={
           <>
-            <Button
-              variant="outline"
-              onClick={() => setOpen(false)}
-              disabled={create.isPending}
-            >
+            <Button variant="outline" onClick={close} disabled={isPending}>
               Cancel
             </Button>
-            <Button onClick={handleSubmit(onSubmit)} loading={create.isPending}>
-              Create draft
+            <Button onClick={handleSubmit(onSubmit)} loading={isPending}>
+              {isEditing ? "Save changes" : "Create draft"}
             </Button>
           </>
         }
@@ -105,11 +152,49 @@ export function AssignmentFormDialog({ offeringId }: { offeringId: string }) {
           </div>
 
           <div>
-            <label className="mb-1.5 block text-sm font-medium">Description</label>
+            <label className="mb-1.5 block text-sm font-medium">
+              Description &amp; Questions
+            </label>
             <Textarea
               {...register("description")}
-              placeholder="Brief overview"
-              rows={2}
+              placeholder="Type the assignment questions here — one question per paragraph or line. For formatted documents, attach a question file below."
+              rows={9}
+            />
+            <p className="text-muted-foreground mt-1 text-xs">
+              Supports multi-paragraph question sets. Students see this text exactly as
+              written.
+            </p>
+          </div>
+
+          <div className="border-border/60 rounded-xl border p-3">
+            <label className="mb-1.5 block text-sm font-medium">
+              Question file <span className="text-muted-foreground font-normal">(optional)</span>
+            </label>
+            <p className="text-muted-foreground mb-2 text-xs">
+              Attach a PDF, Word, or image file containing the questions. Students can
+              download it from the assignment page.
+            </p>
+            {isEditing && assignment.attachments?.length > 0 && (
+              <ul className="mb-2 space-y-1">
+                {assignment.attachments.map((att) => (
+                  <li
+                    key={att.id}
+                    className="bg-muted/40 flex items-center gap-2 rounded-md border px-2.5 py-1.5 text-xs"
+                  >
+                    <Paperclip className="text-primary h-3.5 w-3.5 shrink-0" aria-hidden />
+                    <span className="min-w-0 flex-1 truncate">{att.originalName}</span>
+                    <span className="text-muted-foreground shrink-0">
+                      {formatBytes(att.sizeBytes)}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+            <FileUploader
+              files={questionFiles}
+              onChange={setQuestionFiles}
+              prefix="materials"
+              maxFiles={5}
             />
           </div>
 
@@ -117,7 +202,7 @@ export function AssignmentFormDialog({ offeringId }: { offeringId: string }) {
             <label className="mb-1.5 block text-sm font-medium">Instructions</label>
             <Textarea
               {...register("instructions")}
-              placeholder="What students should do"
+              placeholder="What students should do — submission format, word count, etc."
               rows={3}
             />
           </div>
@@ -188,6 +273,12 @@ export function AssignmentFormDialog({ offeringId }: { offeringId: string }) {
 
 function defaultDueDate(): string {
   const d = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+  d.setHours(23, 59, 0, 0);
+  return toLocalInput(d.toISOString());
+}
+
+function toLocalInput(iso: string): string {
+  const d = new Date(iso);
   const pad = (n: number) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T23:59`;
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }

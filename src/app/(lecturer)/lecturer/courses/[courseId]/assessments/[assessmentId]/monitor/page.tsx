@@ -42,7 +42,7 @@ export default function CAMonitorPage({
   );
 }
 
-function MonitorContent({
+export function MonitorContent({
   params,
 }: {
   params: Promise<{ courseId: string; assessmentId: string }>;

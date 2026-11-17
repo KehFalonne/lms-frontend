@@ -14,6 +14,21 @@ interface ChatMessageProps {
   onReply: (post: DiscussionPost) => void;
 }
 
+/** Deterministic hue per author, stable across sessions. */
+const HUES = [
+  "bg-primary/10 text-primary ring-primary/20",
+  "bg-info/10 text-info ring-info/20",
+  "bg-success/10 text-success ring-success/20",
+  "bg-warning/10 text-warning ring-warning/25",
+];
+
+function hueFor(id: string | undefined): string {
+  if (!id) return HUES[0];
+  let hash = 0;
+  for (let i = 0; i < id.length; i += 1) hash = (hash * 31 + id.charCodeAt(i)) | 0;
+  return HUES[Math.abs(hash) % HUES.length];
+}
+
 export function ChatMessage({
   post,
   parentPost,
@@ -32,53 +47,58 @@ export function ChatMessage({
       className={cn(
         "group flex items-end gap-2",
         isOwn ? "flex-row-reverse" : "flex-row",
-        grouped ? "mt-0.5" : "mt-3"
+        grouped ? "mt-1" : "mt-4",
       )}
     >
-      {/* Avatar column */}
-      {isOwn ? (
-        <div className="w-8 shrink-0" />
-      ) : (
-        <div className="w-8 shrink-0">
-          {!grouped && <Avatar size="sm" fallback={initials} />}
-        </div>
-      )}
+      {/* Avatar column — reserved space keeps the rhythm aligned */}
+      <div className="w-9 shrink-0">
+        {!isOwn && !grouped && (
+          <span
+            className={cn(
+              "flex h-9 w-9 items-center justify-center rounded-xl text-[10px] font-bold uppercase tracking-wide ring-1",
+              hueFor(author?.id),
+            )}
+          >
+            {initials}
+          </span>
+        )}
+      </div>
 
       {/* Bubble */}
       <div
         className={cn(
-          "relative max-w-[80%] sm:max-w-[70%]",
-          isOwn ? "items-end" : "items-start"
+          "relative max-w-[78%] sm:max-w-[68%]",
+          isOwn ? "items-end" : "items-start",
         )}
       >
         {!grouped && !isOwn && author && (
-          <p className="text-muted-foreground mb-0.5 px-1 text-xs font-medium">
-            {author.firstName} {author.lastName}
+          <p className="text-muted-foreground mb-1 px-1 text-[10px] font-semibold uppercase tracking-[0.16em]">
+            {author.firstName}
           </p>
         )}
 
         <div
           className={cn(
-            "rounded-2xl px-3 py-2 shadow-sm",
+            "rounded-2xl px-3.5 py-2.5 transition-shadow",
             isOwn
-              ? "bg-primary text-primary-foreground rounded-br-sm"
-              : "bg-surface text-foreground rounded-bl-sm"
+              ? "bg-[linear-gradient(150deg,hsl(221_83%_55%)_0%,hsl(226_72%_48%)_100%)] text-white shadow-[0_12px_28px_-12px_hsl(221_83%_53%/0.7)] ring-1 ring-white/20 rounded-br-md"
+              : "bg-background ring-1 ring-border/70 shadow-[0_4px_14px_-8px_hsl(222_47%_22%/0.35)] rounded-bl-md dark:bg-slate-800/80 dark:ring-white/10",
           )}
         >
           {/* Quoted reply */}
           {parentPost && (
             <div
               className={cn(
-                "mb-1.5 rounded border-l-2 px-2 py-1 text-xs",
+                "mb-1.5 rounded-lg border-l-2 px-2 py-1.5 text-xs",
                 isOwn
-                  ? "border-primary-foreground/50 bg-primary-foreground/10"
-                  : "border-primary/60 bg-primary/10"
+                  ? "border-white/50 bg-white/10"
+                  : "border-primary bg-primary/[0.06]",
               )}
             >
               <p
                 className={cn(
-                  "font-semibold",
-                  isOwn ? "text-primary-foreground/90" : "text-primary"
+                  "text-[9px] font-semibold uppercase tracking-[0.16em]",
+                  isOwn ? "text-white/85" : "text-primary",
                 )}
               >
                 {parentPost.author
@@ -87,8 +107,8 @@ export function ChatMessage({
               </p>
               <p
                 className={cn(
-                  "line-clamp-2",
-                  isOwn ? "text-primary-foreground/75" : "text-muted-foreground"
+                  "line-clamp-2 leading-5",
+                  isOwn ? "text-white/75" : "text-muted-foreground",
                 )}
               >
                 {parentPost.body}
@@ -100,26 +120,31 @@ export function ChatMessage({
 
           <p
             className={cn(
-              "mt-0.5 text-right text-[10px] leading-none",
-              isOwn ? "text-primary-foreground/70" : "text-muted-foreground"
+              "mt-1 text-right text-[9px] font-medium tabular-nums leading-none",
+              isOwn ? "text-white/70" : "text-muted-foreground",
             )}
           >
-            {post.isEdited && <span className="mr-1 italic">edited</span>}
+            {post.isEdited && <span className="mr-1 italic opacity-80">edited</span>}
             {time}
           </p>
         </div>
 
-        {/* Hover reply button */}
+        {/* Reply action — always visible on touch, hover/focus on pointers */}
         <button
           type="button"
           onClick={() => onReply(post)}
           className={cn(
-            "bg-background absolute top-1/2 -translate-y-1/2 rounded-full p-1.5 opacity-0 shadow-md transition-opacity group-hover:opacity-100",
-            isOwn ? "-left-9" : "-right-9"
+            "absolute top-1/2 -translate-y-1/2 rounded-full p-2 shadow-md outline-none",
+            "group/reply bg-background ring-1 ring-border/70 transition-all duration-200 hover:scale-110 hover:bg-primary hover:ring-primary focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-primary",
+            "sm:opacity-0 sm:group-hover:opacity-100 sm:focus-visible:scale-110",
+            isOwn ? "-left-10" : "-right-10",
           )}
-          aria-label="Reply"
+          aria-label="Reply to message"
         >
-          <ReplyIcon className="text-muted-foreground h-3.5 w-3.5" />
+          <ReplyIcon
+            className="text-muted-foreground group-hover/reply:text-primary-foreground h-3.5 w-3.5 transition-colors"
+            aria-hidden
+          />
         </button>
       </div>
     </div>

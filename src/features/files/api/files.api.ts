@@ -17,12 +17,14 @@ interface UploadTarget {
 async function requestUploadUrl(
   filename: string,
   sizeBytes: number,
-  mimeType: string
+  mimeType: string,
+  prefix: string
 ): Promise<UploadTarget> {
   const res = await post<ApiResponse<UploadTarget>>("/files/upload-url/", {
     filename,
     sizeBytes,
     mimeType: mimeType || "application/octet-stream",
+    prefix,
   });
   return res.data;
 }
@@ -81,9 +83,10 @@ async function completeUpload(fileId: string): Promise<void> {
  */
 export async function uploadFile(
   file: File,
-  onProgress?: (pct: number) => void
+  onProgress?: (pct: number) => void,
+  prefix = "uploads"
 ): Promise<string> {
-  const target = await requestUploadUrl(file.name, file.size, file.type);
+  const target = await requestUploadUrl(file.name, file.size, file.type, prefix);
   await uploadToTarget(target, file, onProgress);
   await completeUpload(target.fileId);
   return target.fileId;

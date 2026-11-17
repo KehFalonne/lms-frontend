@@ -17,6 +17,23 @@ export interface AdminUser {
   lastLoginAt: string | null;
   createdAt: string;
   updatedAt: string;
+  studentProfile: {
+    id: string;
+    matriculeNumber: string;
+    programmeId: string | null;
+    facultyId: string | null;
+    currentLevel: number;
+    admissionYear: number;
+    admissionDate: string | null;
+    status: "ACTIVE" | "On_LEAVE" | "SUSPENDED" | "GRADUATED" | "WITHDRAWN";
+  } | null;
+  staffProfile: {
+    id: string;
+    staffNumber: string;
+    departmentId: string | null;
+    facultyId: string | null;
+    jobTitle: string;
+  } | null;
 }
 
 export interface AdminUserRoleAssignment {
@@ -49,6 +66,7 @@ export interface CreateUserPayload {
   middleName?: string;
   lastName: string;
   phone?: string;
+  avatarFileId?: string;
   status?: AdminUser["status"];
   // Optional profile side-channel
   matriculeNumber?: string;
@@ -58,6 +76,9 @@ export interface CreateUserPayload {
   programmeId?: string;
   departmentId?: string;
   jobTitle?: string;
+  studentStatus?: "ACTIVE" | "On_LEAVE" | "SUSPENDED" | "GRADUATED" | "WITHDRAWN";
+  admissionDate?: string | null;
+  profileType?: "student" | "staff" | "none";
 }
 
 // ── Roles ────────────────────────────────────────────────────────
@@ -103,6 +124,11 @@ export interface AuditLog {
   userAgent: string;
   metadata: Record<string, unknown>;
   createdAt: string;
+}
+
+export interface AuditFacets {
+  actions: string[];
+  entityTypes: string[];
 }
 
 // ── Admin stats ───────────────────────────────────────────────────

@@ -11,6 +11,7 @@ import {
   listUserRoles,
   listUsers,
   revokeUserRole,
+  resetUserPassword,
   updateUser,
 } from "../api/admin.api";
 import { normalizeError } from "@/lib/api/errors";
@@ -93,6 +94,15 @@ export function useDeactivateUser() {
       qc.invalidateQueries({ queryKey: ["admin-users"] });
       qc.invalidateQueries({ queryKey: ["admin-user"] });
     },
+    onError: (err) => toast.error(normalizeError(err).message),
+  });
+}
+
+export function useResetUserPassword(userId: string) {
+  return useMutation({
+    mutationFn: (payload: { password: string; passwordConfirmation: string }) =>
+      resetUserPassword(userId, payload),
+    onSuccess: () => toast.success("User password reset"),
     onError: (err) => toast.error(normalizeError(err).message),
   });
 }

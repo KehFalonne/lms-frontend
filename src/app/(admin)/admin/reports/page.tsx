@@ -123,6 +123,7 @@ function ReportsContent() {
                         dataKey="enrollments"
                         stroke="#3b82f6"
                         strokeWidth={2}
+                        isAnimationActive={false}
                       />
                     </LineChart>
                   </ResponsiveContainer>
@@ -149,8 +150,8 @@ function ReportsContent() {
                       <YAxis tick={{ fontSize: 11 }} />
                       <Tooltip />
                       <Legend wrapperStyle={{ fontSize: 11 }} />
-                      <Bar dataKey="activeStudents" fill="#3b82f6" name="Students" />
-                      <Bar dataKey="submissions" fill="#10b981" name="Submissions" />
+                      <Bar dataKey="activeStudents" fill="#3b82f6" name="Students" isAnimationActive={false} />
+                      <Bar dataKey="submissions" fill="#10b981" name="Submissions" isAnimationActive={false} />
                     </BarChart>
                   </ResponsiveContainer>
                 )}
@@ -176,6 +177,7 @@ function ReportsContent() {
                         innerRadius={45}
                         outerRadius={75}
                         paddingAngle={2}
+                        isAnimationActive={false}
                       >
                         {r.programmeDistribution.map((_, i) => (
                           <Cell key={i} fill={COLORS[i % COLORS.length]} />
@@ -218,8 +220,9 @@ function ReportsContent() {
                         fill="#3b82f6"
                         name="Students"
                         stackId="a"
+                        isAnimationActive={false}
                       />
-                      <Bar dataKey="staff" fill="#f59e0b" name="Staff" stackId="a" />
+                      <Bar dataKey="staff" fill="#f59e0b" name="Staff" stackId="a" isAnimationActive={false} />
                     </BarChart>
                   </ResponsiveContainer>
                 )}

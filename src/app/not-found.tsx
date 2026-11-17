@@ -26,7 +26,14 @@ export default function NotFound() {
   }
 
   const isAuthenticated = status === "authenticated" && !!user;
-  const homeHref = isAuthenticated ? roleBasedLanding(user.roles) : "/login";
+  const homeHref = isAuthenticated
+    ? roleBasedLanding(
+        user.roles,
+        Boolean(user.staffProfile),
+        Boolean(user.studentProfile),
+        Boolean(user.isStaff)
+      )
+    : "/login";
   const homeLabel = isAuthenticated ? "Go to dashboard" : "Go to sign in";
 
   return (

@@ -2,11 +2,17 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { GraduationCap, X } from "lucide-react";
+import { ChevronDown, ChevronsLeft, ChevronsRight, ShieldCheck, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { BrandMark } from "./brand-mark";
 import { cn } from "@/lib/utils/cn";
-import { getNavItems } from "@/lib/constants/routes";
+import {
+  bestMatchNavItem,
+  getNavItems,
+  workspaceFromPathname,
+  type NavItem,
+} from "@/lib/constants/routes";
 import { useAuthStore } from "@/stores/auth.store";
 import {
   getFullscreenElement,
@@ -22,6 +28,8 @@ interface SidebarProps {
   onClose?: () => void;
   autoHide?: boolean;
   fullscreen?: boolean;
+  collapsed?: boolean;
+  onToggleCollapsed?: () => void;
 }
 
 export function Sidebar({
@@ -29,17 +37,38 @@ export function Sidebar({
   onClose,
   autoHide = false,
   fullscreen = false,
+  collapsed: collapsedProp = false,
+  onToggleCollapsed,
 }: SidebarProps) {
   const pathname = usePathname();
   const user = useAuthStore((s) => s.user);
-  const items = getNavItems(user?.roles ?? []);
+  const items = getNavItems(
+    user?.roles ?? [],
+    Boolean(user?.staffProfile),
+    workspaceFromPathname(pathname),
+    Boolean(user?.studentProfile),
+    Boolean(user?.isStaff),
+    user?.permissions ?? [],
+    Boolean(user?.isSuperuser)
+  );
+  const homeHref = user ? (items[0]?.href ?? "/") : "/";
+  const activeHref = bestMatchNavItem(items, pathname)?.href ?? null;
   const [isHovered, setIsHovered] = useState(false);
   const [isPinned, setIsPinned] = useState(false);
   const [browserFullscreen, setBrowserFullscreen] = useState(false);
   const hoverTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const collapsed = autoHide && !isHovered && !isPinned && !mobileOpen;
+  const collapsed =
+    !mobileOpen && (autoHide ? !isHovered && !isPinned : collapsedProp);
   const shouldHide = fullscreen || browserFullscreen;
+
+  const handleToggleCollapse = () => {
+    if (autoHide) {
+      setIsPinned((pinned) => !pinned);
+      return;
+    }
+    onToggleCollapsed?.();
+  };
 
   const clearHoverTimer = () => {
     if (hoverTimer.current) {
@@ -113,21 +142,28 @@ export function Sidebar({
 
   const content = (
     <>
-      <div className="border-border flex h-16 shrink-0 items-center justify-between border-b px-5">
+      {/* Brand lockup */}
+      <div className="border-border flex h-16 shrink-0 items-center justify-between border-b px-4">
         <Link
-          href={user ? getNavItems(user.roles)[0].href : "/"}
-          className="flex items-center gap-2"
+          href={homeHref}
+          className="focus-visible:ring-primary/50 flex items-center gap-2.5 rounded-lg pr-1 outline-none focus-visible:ring-2"
+          aria-label="GU-LMS — home"
         >
-          <GraduationCap className="text-primary h-6 w-6" aria-hidden />
+          <BrandMark size="md" />
           <span
             className={cn(
-              "max-w-[8rem] overflow-hidden whitespace-nowrap transition-[max-width,opacity,transform] duration-200 ease-out",
+              "flex flex-col overflow-hidden whitespace-nowrap transition-[max-width,opacity,transform] duration-200 ease-out",
               collapsed
                 ? "pointer-events-none max-w-0 -translate-x-2 opacity-0"
-                : "translate-x-0 opacity-100"
+                : "max-w-[11rem] translate-x-0 opacity-100"
             )}
           >
-            GU-LMS
+            <span className="text-[15px] leading-5 font-semibold tracking-tight">
+              GU<span className="text-primary">-</span>LMS
+            </span>
+            <span className="text-muted-foreground text-[9px] font-medium tracking-[0.2em] uppercase">
+              Gracious University
+            </span>
           </span>
         </Link>
         {onClose && (
@@ -135,7 +171,7 @@ export function Sidebar({
             variant="ghost"
             size="icon"
             onClick={onClose}
-            className="md:hidden"
+            className="h-10 w-10 rounded-xl md:hidden"
             aria-label="Close menu"
           >
             <X className="h-5 w-5" />
@@ -143,6 +179,7 @@ export function Sidebar({
         )}
       </div>
 
+      {/* Navigation */}
       <nav
         className={cn(
           "pb-safe min-h-0 flex-1 scrollbar-none overflow-y-auto overscroll-contain p-3 md:min-h-0 md:flex-none md:overflow-visible md:overscroll-auto",
@@ -151,61 +188,85 @@ export function Sidebar({
         data-scroll-region
         aria-label="Main navigation"
       >
+        <p
+          aria-hidden
+          className={cn(
+            "text-muted-foreground/70 mb-2 px-3 text-[9px] font-semibold tracking-[0.22em] uppercase transition-opacity duration-200",
+            collapsed && "opacity-0"
+          )}
+        >
+          Navigate
+        </p>
+
         <ul className="space-y-1">
-          {items.map(({ label, href, icon: Icon }) => {
-            const active = pathname === href || pathname.startsWith(href + "/");
-            return (
-              <li key={href}>
-                <Link
-                  href={href}
-                  onClick={onClose}
-                  className={cn(
-                    "focus-visible:ring-primary/50 flex min-h-11 items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium transition-colors focus-visible:ring-2 focus-visible:ring-offset-2",
-                    collapsed && "justify-center gap-0 px-0",
-                    active
-                      ? "bg-primary/10 text-primary shadow-sm"
-                      : "text-muted-foreground hover:bg-surface hover:text-foreground"
-                  )}
-                  title={collapsed ? label : undefined}
-                  aria-current={active ? "page" : undefined}
-                >
-                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md">
-                    <Icon className="h-5 w-5" aria-hidden />
-                  </span>
-                  <span
-                    className={cn(
-                      "max-w-[12rem] overflow-hidden whitespace-nowrap transition-[max-width,opacity,transform] duration-200 ease-out",
-                      collapsed
-                        ? "pointer-events-none max-w-0 -translate-x-2 opacity-0"
-                        : "translate-x-0 opacity-100"
-                    )}
-                  >
-                    {label}
-                  </span>
-                </Link>
-              </li>
-            );
-          })}
+          {items.map((item) =>
+            item.children?.length ? (
+              <NavGroup
+                key={item.label}
+                item={item}
+                activeHref={activeHref}
+                collapsed={collapsed}
+                onClose={onClose}
+                onExpand={() => {
+                  if (autoHide) {
+                    setIsPinned(true);
+                  } else {
+                    onToggleCollapsed?.();
+                  }
+                }}
+              />
+            ) : (
+              <NavLink
+                key={item.href ?? item.label}
+                item={item}
+                active={item.href === activeHref}
+                collapsed={collapsed}
+                onClose={onClose}
+              />
+            )
+          )}
         </ul>
       </nav>
 
+      {/* Footer — security note + collapse toggle */}
       <div
         className={cn(
-          "border-border text-muted-foreground mt-auto flex shrink-0 items-center gap-2 border-t p-4 text-xs transition-[padding] duration-300 ease-out",
-          collapsed && "justify-center p-2"
+          "border-border mt-auto flex shrink-0 items-center gap-2.5 border-t p-3.5 transition-[padding] duration-300 ease-out",
+          collapsed && "flex-col justify-center gap-2 p-2.5"
         )}
       >
-        <GraduationCap className="text-primary h-5 w-5 shrink-0" aria-hidden />
+        <span className="bg-success/10 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg">
+          <ShieldCheck className="text-success h-4 w-4" aria-hidden />
+        </span>
         <span
           className={cn(
-            "inline-block max-w-[16rem] overflow-hidden whitespace-nowrap transition-[max-width,opacity,transform] duration-200 ease-out",
-            collapsed
-              ? "pointer-events-none max-w-0 -translate-x-2 opacity-0"
-              : "translate-x-0 opacity-100"
+            "flex max-w-[12rem] flex-col overflow-hidden whitespace-nowrap transition-[max-width,opacity,transform] duration-200 ease-out",
+            collapsed ? "hidden" : "translate-x-0 opacity-100"
           )}
         >
-          GU-LMS · Gracious University
+          <span className="text-[11px] leading-4 font-semibold">Secured session</span>
+          <span className="text-muted-foreground text-[9px] leading-4">
+            Gracious University · GU-LMS
+          </span>
         </span>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          onClick={handleToggleCollapse}
+          className={cn(
+            "hidden h-9 w-9 rounded-xl md:inline-flex",
+            collapsed ? "shrink-0" : "ml-auto"
+          )}
+          aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+          title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+        >
+          {collapsed ? (
+            <ChevronsRight className="h-4 w-4" aria-hidden />
+          ) : (
+            <ChevronsLeft className="h-4 w-4" aria-hidden />
+          )}
+        </Button>
       </div>
     </>
   );
@@ -214,22 +275,22 @@ export function Sidebar({
     <>
       <div
         className={cn(
-          "relative min-h-screen shrink-0",
+          "relative min-h-screen shrink-0 transition-[width] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]",
           shouldHide
             ? "hidden"
-            : autoHide
+            : collapsed
               ? "hidden w-16 md:block"
-              : "hidden w-60 md:block"
+              : "hidden w-64 md:block"
         )}
       >
         <aside
           className={cn(
             "border-border bg-background fixed inset-y-0 left-0 z-40 flex h-screen max-h-screen flex-col overflow-hidden border-r transition-[width,box-shadow] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]",
-            autoHide
-              ? collapsed
-                ? "w-16"
-                : "w-60 shadow-[8px_0_24px_-18px_rgba(15,23,42,0.45)]"
-              : "w-60"
+            collapsed
+              ? "w-16"
+              : autoHide
+                ? "w-64 shadow-[10px_0_36px_-20px_hsl(221_83%_53%/0.5)]"
+                : "w-64"
           )}
           onPointerEnter={handlePointerEnter}
           onPointerLeave={handlePointerLeave}
@@ -248,7 +309,7 @@ export function Sidebar({
       {mobileOpen && (
         <div className="fixed inset-0 z-50 md:hidden">
           <div
-            className="animate-fade-in absolute inset-0 bg-black/50"
+            className="animate-fade-in absolute inset-0 bg-black/55 backdrop-blur-[2px]"
             onClick={onClose}
             aria-hidden
           />
@@ -256,12 +317,188 @@ export function Sidebar({
             role="dialog"
             aria-modal="true"
             aria-label="Navigation menu"
-            className="animate-slide-in bg-background absolute top-0 left-0 flex h-full w-72 max-w-[85vw] flex-col shadow-xl"
+            className="animate-slide-in bg-background pb-safe absolute top-0 left-0 flex h-full w-72 max-w-[85vw] flex-col overflow-hidden shadow-[0_24px_60px_-24px_hsl(222_47%_22%/0.55)]"
           >
             {content}
           </aside>
         </div>
       )}
     </>
+  );
+}
+
+const NAV_LINK_BASE =
+  "group focus-visible:ring-primary/50 relative flex items-center gap-3 rounded-xl text-sm font-medium transition-[background-color,color,box-shadow] duration-200 outline-none focus-visible:ring-2";
+
+function navLinkClasses(active: boolean, collapsed: boolean): string {
+  return cn(
+    NAV_LINK_BASE,
+    collapsed ? "justify-center gap-0 px-0" : "px-2.5",
+    active
+      ? "bg-primary/[0.09] text-primary shadow-[inset_0_0_0_1px_hsl(var(--primary)/0.18)]"
+      : "text-muted-foreground hover:bg-muted/60 hover:text-foreground"
+  );
+}
+
+function ActiveRail({ active }: { active: boolean }) {
+  return (
+    <span
+      aria-hidden
+      className={cn(
+        "bg-primary absolute top-1/2 left-0 h-6 w-1 -translate-y-1/2 rounded-r-full transition-opacity duration-200",
+        active ? "opacity-100" : "opacity-0"
+      )}
+    />
+  );
+}
+
+function NavLink({
+  item,
+  active,
+  collapsed,
+  onClose,
+  nested = false,
+}: {
+  item: NavItem;
+  active: boolean;
+  collapsed: boolean;
+  onClose?: () => void;
+  nested?: boolean;
+}) {
+  if (!item.href) return null;
+  const { href, label, icon: Icon } = item;
+
+  return (
+    <li>
+      <Link
+        href={href}
+        onClick={onClose}
+        title={collapsed ? label : undefined}
+        aria-current={active ? "page" : undefined}
+        className={cn(
+          navLinkClasses(active, collapsed),
+          nested
+            ? cn("min-h-10 py-1.5 text-[13px]", !active && "text-foreground/80")
+            : "min-h-11 py-2"
+        )}
+      >
+        <ActiveRail active={active} />
+        <span
+          className={cn(
+            "flex shrink-0 items-center justify-center rounded-lg transition-colors duration-200",
+            nested ? "h-7 w-7" : "h-8 w-8",
+            active
+              ? "bg-primary text-primary-foreground shadow-[0_8px_18px_-10px_hsl(221_83%_53%/0.7)]"
+              : "text-muted-foreground group-hover:bg-background group-hover:text-primary group-hover:shadow-sm"
+          )}
+        >
+          <Icon className={nested ? "h-4 w-4" : "h-[18px] w-[18px]"} aria-hidden />
+        </span>
+        <span
+          className={cn(
+            "max-w-[12rem] min-w-0 overflow-hidden whitespace-nowrap transition-[max-width,opacity,transform] duration-200 ease-out",
+            collapsed
+              ? "pointer-events-none max-w-0 -translate-x-2 opacity-0"
+              : "translate-x-0 opacity-100"
+          )}
+        >
+          {label}
+        </span>
+      </Link>
+    </li>
+  );
+}
+
+function NavGroup({
+  item,
+  activeHref,
+  collapsed,
+  onClose,
+  onExpand,
+}: {
+  item: NavItem;
+  activeHref: string | null;
+  collapsed: boolean;
+  onClose?: () => void;
+  onExpand: () => void;
+}) {
+  const children = item.children ?? [];
+  const hasActiveChild = children.some((child) => child.href === activeHref);
+  const [open, setOpen] = useState(hasActiveChild);
+
+  useEffect(() => {
+    if (hasActiveChild) setOpen(true);
+  }, [hasActiveChild]);
+
+  const { label, icon: Icon } = item;
+
+  return (
+    <li>
+      <button
+        type="button"
+        onClick={() => {
+          if (collapsed) {
+            onExpand();
+            setOpen(true);
+          } else {
+            setOpen((current) => !current);
+          }
+        }}
+        title={collapsed ? label : undefined}
+        aria-expanded={open}
+        className={cn(navLinkClasses(hasActiveChild, collapsed), "min-h-11 w-full py-2")}
+      >
+        <ActiveRail active={hasActiveChild} />
+        <span
+          className={cn(
+            "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition-colors duration-200",
+            hasActiveChild
+              ? "bg-primary text-primary-foreground shadow-[0_8px_18px_-10px_hsl(221_83%_53%/0.7)]"
+              : "text-muted-foreground group-hover:bg-background group-hover:text-primary group-hover:shadow-sm"
+          )}
+        >
+          <Icon className="h-[18px] w-[18px]" aria-hidden />
+        </span>
+        <span
+          className={cn(
+            "max-w-[12rem] min-w-0 overflow-hidden text-[13px] whitespace-nowrap transition-[max-width,opacity,transform] duration-200 ease-out",
+            collapsed
+              ? "pointer-events-none max-w-0 -translate-x-2 opacity-0"
+              : "translate-x-0 opacity-100"
+          )}
+        >
+          {label}
+        </span>
+        <ChevronDown
+          className={cn(
+            "text-muted-foreground h-4 w-4 shrink-0 transition-transform duration-200",
+            collapsed ? "hidden" : "ml-auto",
+            open && "rotate-180"
+          )}
+          aria-hidden
+        />
+      </button>
+      <div
+        className={cn(
+          "grid transition-[grid-template-rows,opacity] duration-200 ease-out",
+          open && !collapsed ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
+        )}
+      >
+        <div className="min-h-0 overflow-hidden">
+          <ul className="border-border/70 bg-muted/20 ml-5 space-y-0.5 rounded-r-xl border-l py-1.5 pl-2">
+            {children.map((child) => (
+              <NavLink
+                key={child.href ?? child.label}
+                item={child}
+                nested
+                active={child.href === activeHref}
+                collapsed={false}
+                onClose={onClose}
+              />
+            ))}
+          </ul>
+        </div>
+      </div>
+    </li>
   );
 }

@@ -9,6 +9,7 @@ export const endpoints = {
     logout: "/auth/logout/",
     refresh: "/auth/token/refresh/",
     me: "/auth/me/",
+    avatar: "/auth/me/avatar/",
     changePassword: "/auth/change-password/",
     forgotPassword: "/auth/forgot-password/",
     resetPassword: "/auth/reset-password/",
@@ -20,6 +21,7 @@ export const endpoints = {
     detail: (id: string) => `/users/${id}/`,
     activate: (id: string) => `/users/${id}/activate/`,
     deactivate: (id: string) => `/users/${id}/deactivate/`,
+    resetPassword: (id: string) => `/users/${id}/reset-password/`,
     assignRole: (id: string) => `/users/${id}/assign-role/`,
     revokeRole: (id: string, assignmentId: string) =>
       `/users/${id}/roles/${assignmentId}/`,
@@ -81,6 +83,8 @@ export const endpoints = {
     bulkEnroll: (id: string) => `/course-offerings/${id}/enrollments/bulk/`,
     enrollment: (id: string, studentId: string) =>
       `/course-offerings/${id}/enrollments/${studentId}/`,
+    enrollmentDecision: (id: string, studentId: string) =>
+      `/course-offerings/${id}/enrollments/${studentId}/decision/`,
     modules: (id: string) => `/course-offerings/${id}/modules/`,
     assignments: (id: string) => `/course-offerings/${id}/assignments/`,
     assessments: (id: string) => `/course-offerings/${id}/assessments/`,
@@ -201,6 +205,8 @@ export const endpoints = {
       lecturer: "/dashboards/lecturer/",
       admin: "/dashboards/admin/",
     },
+    courseAnalytics: (offeringId: string) => `/course-offerings/${offeringId}/analytics/`,
+    lecturerAnalytics: "/lecturer/analytics/",
     adminStats: "/admin/stats/",
     adminDashboard: "/admin/dashboard/",
   },
@@ -208,6 +214,7 @@ export const endpoints = {
   // ── Audit ──────────────────────────────────────────────────────
   audit: {
     logs: "/audit-logs/",
+    facets: "/audit-logs/facets/",
   },
 
   // ── "My" convenience routes ────────────────────────────────────

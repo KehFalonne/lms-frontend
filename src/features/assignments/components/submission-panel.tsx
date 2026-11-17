@@ -229,7 +229,7 @@ export function SubmissionPanel({ assignment, submission }: Props) {
         {wantsFiles && (
           <div>
             <label className="mb-1.5 block text-sm font-medium">Attachments</label>
-            <FileUploader files={uploadedFiles} onChange={setUploadedFiles} />
+            <FileUploader files={uploadedFiles} onChange={setUploadedFiles} prefix="submissions" />
           </div>
         )}
 

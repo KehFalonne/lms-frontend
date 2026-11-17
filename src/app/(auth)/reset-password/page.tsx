@@ -7,9 +7,9 @@ export default function ResetPasswordPage() {
   return (
     <>
       <div className="mb-6">
-        <h1 className="text-xl font-semibold tracking-tight">Reset your password</h1>
-        <p className="text-muted-foreground mt-1 text-sm">
-          Choose a new password for your account.
+        <h1 className="text-2xl font-semibold tracking-tight">Reset your password</h1>
+        <p className="text-muted-foreground mt-1.5 text-sm leading-6">
+          Choose a new password for your account. Links expire shortly for your security.
         </p>
       </div>
 

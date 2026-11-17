@@ -45,7 +45,15 @@ function Content({ params }: { params: Promise<{ courseId: string }> }) {
       </Link>
 
       <PageHeader
-        title={course ? `Gradebook — ${course.course.code}` : "Gradebook"}
+        title={
+          course ? (
+            <>
+              Gradebook — <span className="course-code">{course.course.code}</span>
+            </>
+          ) : (
+            "Gradebook"
+          )
+        }
         description={course?.course.title}
         actions={
           <>

@@ -1,6 +1,5 @@
 "use client";
 import { useEffect } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 import { LoginForm } from "@/features/auth/components/login-form";
@@ -17,26 +16,28 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (isAuthenticated && user) {
-      router.replace(roleBasedLanding(user.roles));
+      router.replace(
+        roleBasedLanding(
+          user.roles,
+          Boolean(user.staffProfile),
+          Boolean(user.studentProfile),
+          Boolean(user.isStaff)
+        )
+      );
     }
   }, [isAuthenticated, user, router]);
 
   return (
     <>
-      <div className="mb-6">
-        <h1 className="text-xl font-semibold tracking-tight">Welcome back</h1>
-        <p className="text-muted-foreground mt-1 text-sm">
-          Sign in to continue to your dashboard.
+      <div className="mb-6 space-y-1.5">
+        <h1 className="text-2xl font-semibold tracking-tight">Welcome back</h1>
+        <p className="text-muted-foreground text-sm leading-6">
+          Sign in with your university ID, matricule, or email to pick up right where you
+          left off.
         </p>
       </div>
 
       <LoginForm />
-
-      <div className="mt-5 text-center text-sm">
-        <Link href="/forgot-password" className="text-primary hover:underline">
-          Forgot your password?
-        </Link>
-      </div>
     </>
   );
 }

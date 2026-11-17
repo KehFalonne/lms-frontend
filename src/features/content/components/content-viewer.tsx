@@ -1,5 +1,10 @@
 "use client";
-import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  type PointerEvent as ReactPointerEvent,
+} from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
   CheckCircle2,
@@ -14,12 +19,16 @@ import {
   StickyNote,
   X,
 } from "lucide-react";
-
+  
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { downloadFile, getDownloadUrl } from "@/features/files/api/files.api";
 import { useContentProgress, useMarkProgress } from "../hooks/useContent";
-import type { AudioChapter, ContentItemDetail, ContentType } from "../types/content.types";
+import type {
+  AudioChapter,
+  ContentItemDetail,
+  ContentType,
+} from "../types/content.types";
 import { isDirectVideoUrl, normalizeVideoUrl } from "../utils/video-url";
 import {
   countTextMatches,
@@ -57,10 +66,16 @@ export function ContentViewer({ item, offeringId }: Props) {
   const requiresLinkOpen = item.contentType === "LINK";
   const requiresTrackedCompletion =
     requiresTrackedMediaCompletion || requiresReadingCompletion || requiresLinkOpen;
+  const requiresThreshold =
+    requiresReadingCompletion || (item.isRequired && requiresTrackedMediaCompletion);
   const canMarkComplete =
     !isCompleted &&
     (!requiresTrackedCompletion ||
-      (requiresLinkOpen ? localProgress >= 100 : localProgress >= 90));
+      (requiresLinkOpen
+        ? localProgress >= 100
+        : requiresThreshold
+          ? localProgress >= 90
+          : true));
 
   useEffect(() => {
     setLocalProgress((previous) => Math.max(previous, savedProgress));
@@ -103,7 +118,10 @@ export function ContentViewer({ item, offeringId }: Props) {
           item={item}
           progressPercent={localProgress}
           onProgress={(progressPercent) => {
-            if (isCompleted) return;
+            // Never report progress until the server state has loaded —
+            // otherwise the mount-time reading check fires with `isCompleted = false`
+            // and demotes an already-COMPLETED lesson back to IN_PROGRESS.
+            if (!progressQuery.isSuccess || isCompleted) return;
             setLocalProgress((previous) => Math.max(previous, progressPercent));
             savePlaybackProgress.mutate({
               contentId: item.id,
@@ -114,15 +132,18 @@ export function ContentViewer({ item, offeringId }: Props) {
         />
       </div>
 
-      <div data-completion-actions className="border-border bg-background/95 pb-safe fixed inset-x-0 bottom-0 z-30 border-t px-4 py-3 shadow-[0_-8px_24px_-20px_hsl(var(--foreground))] backdrop-blur md:left-60">
+      <div
+        data-completion-actions
+        className="border-border bg-background/95 pb-safe fixed inset-x-0 bottom-0 z-30 border-t px-4 py-3 shadow-[0_-8px_24px_-20px_hsl(var(--foreground))] backdrop-blur md:left-60"
+      >
         <div className="mx-auto flex max-w-5xl flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="text-muted-foreground text-xs font-medium uppercase tracking-wide">
+              <span className="text-muted-foreground text-xs font-medium tracking-wide uppercase">
                 {item.contentType}
               </span>
               {item.isRequired && (
-                <span className="text-warning rounded-full bg-warning/10 px-2 py-0.5 text-[11px] font-medium">
+                <span className="text-warning bg-warning/10 rounded-full px-2 py-0.5 text-[11px] font-medium">
                   Required
                 </span>
               )}
@@ -142,9 +163,14 @@ export function ContentViewer({ item, offeringId }: Props) {
                   ? "Open the resource to unlock completion."
                   : requiresReadingCompletion
                     ? `${localProgress}% read · reach 90% to complete.`
-                    : `${localProgress}% complete · reach 90% to finish.`}
+                    : item.isRequired
+                      ? `${localProgress}% complete · reach 90% to finish.`
+                      : `${localProgress}% complete.`}
               </p>
             )}
+            <p className="text-muted-foreground mt-1 text-[11px]">
+              Completion records learning progress only; it does not award academic marks.
+            </p>
           </div>
           <Button
             type="button"
@@ -271,7 +297,7 @@ function ContentBody({
               <summary className="cursor-pointer text-sm font-medium">
                 Show transcript
               </summary>
-              <p className="text-muted-foreground mt-3 whitespace-pre-wrap text-sm leading-6">
+              <p className="text-muted-foreground mt-3 text-sm leading-6 whitespace-pre-wrap">
                 {item.transcript}
               </p>
             </details>
@@ -300,7 +326,7 @@ function ContentBody({
               {item.fileSizeBytes ? ` · ${formatBytes(item.fileSizeBytes)}` : ""}
             </p>
           )}
-          <div className="border-border hidden h-[70vh] min-h-[480px] overflow-hidden rounded-md border bg-slate-100 sm:block">
+          <div className="border-border hidden h-[70vh] min-h-[480px] overflow-hidden rounded-md border bg-slate-100 sm:block dark:bg-slate-800">
             <iframe src={externalUrl} title={item.title} className="h-full w-full" />
           </div>
           <div className="border-border bg-muted/30 rounded-md border p-4 text-sm sm:hidden">
@@ -321,7 +347,9 @@ function ContentBody({
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => void downloadFile(item.fileId!, item.fileName ?? undefined)}
+                onClick={() =>
+                  void downloadFile(item.fileId!, item.fileName ?? undefined)
+                }
               >
                 <Download className="h-4 w-4" />
                 Download PDF
@@ -366,8 +394,12 @@ function ContentBody({
             </div>
             <div className="min-w-0">
               <p className="text-sm font-semibold">External resource</p>
-              <p className="text-muted-foreground mt-1 text-xs">{getUrlHost(externalUrl)}</p>
-              <p className="text-muted-foreground mt-2 break-all text-sm">{externalUrl}</p>
+              <p className="text-muted-foreground mt-1 text-xs">
+                {getUrlHost(externalUrl)}
+              </p>
+              <p className="text-muted-foreground mt-2 text-sm break-all">
+                {externalUrl}
+              </p>
             </div>
           </div>
           <div className="mt-4 flex flex-wrap gap-2">
@@ -417,7 +449,10 @@ function formatBytes(bytes: number): string {
 }
 
 function getReadingTimeMinutes(value: string): number {
-  const text = value.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
+  const text = value
+    .replace(/<[^>]*>/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
   const words = text ? text.split(" ").length : 0;
   return Math.max(1, Math.ceil(words / 200));
 }
@@ -485,7 +520,9 @@ function TextLessonBody({
   }
 
   useEffect(() => {
-    const savedPosition = window.sessionStorage.getItem(`lesson-search-icon-position-${storageKey}`);
+    const savedPosition = window.sessionStorage.getItem(
+      `lesson-search-icon-position-${storageKey}`
+    );
     if (savedPosition) {
       try {
         const parsed = JSON.parse(savedPosition) as { x?: number; y?: number };
@@ -530,7 +567,7 @@ function TextLessonBody({
     setMobileSearchPosition(nextPosition);
     window.sessionStorage.setItem(
       `lesson-search-icon-position-${storageKey}`,
-      JSON.stringify(nextPosition),
+      JSON.stringify(nextPosition)
     );
   }
 
@@ -606,13 +643,17 @@ function TextLessonBody({
           level: Number(heading.tagName.substring(1)),
           index,
         }))
-        .filter((heading) => heading.title),
+        .filter((heading) => heading.title)
     );
   }, [body, search]);
 
   useEffect(() => {
     const article = articleRef.current;
-    if (!article || headings.length === 0 || typeof IntersectionObserver === "undefined") {
+    if (
+      !article ||
+      headings.length === 0 ||
+      typeof IntersectionObserver === "undefined"
+    ) {
       return;
     }
 
@@ -626,7 +667,7 @@ function TextLessonBody({
         const nextIndex = headingElements.indexOf(visibleHeading.target as Element);
         if (nextIndex >= 0) setActiveHeadingIndex(nextIndex);
       },
-      { rootMargin: "-18% 0px -68% 0px", threshold: [0, 1] },
+      { rootMargin: "-18% 0px -68% 0px", threshold: [0, 1] }
     );
 
     headingElements.forEach((heading) => observer.observe(heading));
@@ -688,7 +729,10 @@ function TextLessonBody({
       aria-label="Search lesson content"
     >
       <div className="relative">
-        <Search className="text-muted-foreground pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2" aria-hidden />
+        <Search
+          className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2"
+          aria-hidden
+        />
         <Input
           value={search}
           onChange={(event) => setSearch(event.target.value)}
@@ -705,7 +749,7 @@ function TextLessonBody({
           }}
           placeholder="Search this lesson"
           aria-label="Search this lesson"
-          className={`border-transparent bg-transparent pl-9 opacity-60 transition-all duration-200 hover:border-border hover:bg-background/95 hover:opacity-100 focus:border-border focus:bg-background/95 focus:opacity-100 sm:border-border sm:bg-background sm:opacity-100 ${search ? "pr-10" : ""}`}
+          className={`hover:border-border hover:bg-background/95 focus:border-border focus:bg-background/95 sm:border-border sm:bg-background border-transparent bg-transparent pl-9 opacity-60 transition-all duration-200 hover:opacity-100 focus:opacity-100 sm:opacity-100 ${search ? "pr-10" : ""}`}
         />
         {search && (
           <button
@@ -726,10 +770,20 @@ function TextLessonBody({
           </p>
           {matchCount > 0 && (
             <div className="flex gap-1">
-              <Button type="button" size="sm" variant="outline" onClick={() => goToMatch(activeMatch - 1)}>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={() => goToMatch(activeMatch - 1)}
+              >
                 Previous
               </Button>
-              <Button type="button" size="sm" variant="outline" onClick={() => goToMatch(activeMatch + 1)}>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={() => goToMatch(activeMatch + 1)}
+              >
                 Next
               </Button>
             </div>
@@ -751,17 +805,19 @@ function TextLessonBody({
         {headings.length > 0 && (
           <aside className="border-border hidden rounded-lg border p-3 lg:sticky lg:top-32 lg:block lg:max-h-[calc(100vh-9rem)] lg:self-start lg:overflow-y-auto">
             <details open>
-              <summary className="cursor-pointer text-sm font-medium">On this page</summary>
+              <summary className="cursor-pointer text-sm font-medium">
+                On this page
+              </summary>
               <nav aria-label="Lesson sections" className="mt-2 space-y-1">
                 {headings.map((heading) => (
                   <button
                     key={`${heading.index}-${heading.title}`}
                     type="button"
-                  className={`block w-full rounded px-2 py-1 text-left text-sm transition-colors ${
-                    activeHeadingIndex === heading.index
-                      ? "bg-primary/10 text-primary font-medium"
-                      : "text-muted-foreground hover:text-foreground"
-                  }`}
+                    className={`block w-full rounded px-2 py-1 text-left text-sm transition-colors ${
+                      activeHeadingIndex === heading.index
+                        ? "bg-primary/10 text-primary font-medium"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
                     style={{ paddingLeft: `${(heading.level - 1) * 0.75 + 0.5}rem` }}
                     onClick={() => goToHeading(heading.index)}
                   >
@@ -773,53 +829,53 @@ function TextLessonBody({
           </aside>
         )}
         {headings.length > 0 && (
-          <div className="fixed left-0 top-1/2 z-30 -translate-y-1/2 lg:hidden">
+          <div className="fixed top-1/2 left-0 z-30 -translate-y-1/2 lg:hidden">
             <div
-              className={`border-border bg-background/95 w-[min(18rem,calc(100vw-2rem))] max-h-[65vh] overflow-y-auto rounded-r-xl border p-3 shadow-xl backdrop-blur transition-all duration-200 ease-out ${
+              className={`border-border bg-background/95 max-h-[65vh] w-[min(18rem,calc(100vw-2rem))] overflow-y-auto rounded-r-xl border p-3 shadow-xl backdrop-blur transition-all duration-200 ease-out ${
                 isMobileOutlineOpen
                   ? "translate-x-0 opacity-100"
                   : "pointer-events-none -translate-x-full opacity-0"
               }`}
             >
-                <div className="flex items-center justify-between gap-2">
-                  <p className="text-sm font-medium">On this page</p>
-                  <Button
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-sm font-medium">On this page</p>
+                <Button
+                  type="button"
+                  size="icon"
+                  variant="ghost"
+                  className="h-8 w-8"
+                  onClick={() => setIsMobileOutlineOpen(false)}
+                  aria-label="Close lesson sections"
+                >
+                  <ChevronLeft className="h-4 w-4" aria-hidden />
+                </Button>
+              </div>
+              <nav aria-label="Lesson sections" className="mt-2 space-y-1">
+                {headings.map((heading) => (
+                  <button
+                    key={`mobile-${heading.index}-${heading.title}`}
                     type="button"
-                    size="icon"
-                    variant="ghost"
-                    className="h-8 w-8"
-                    onClick={() => setIsMobileOutlineOpen(false)}
-                    aria-label="Close lesson sections"
+                    className={`block w-full rounded px-2 py-2 text-left text-sm transition-colors ${
+                      activeHeadingIndex === heading.index
+                        ? "bg-primary/10 text-primary font-medium"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                    style={{ paddingLeft: `${(heading.level - 1) * 0.75 + 0.5}rem` }}
+                    onClick={() => {
+                      setIsMobileOutlineOpen(false);
+                      goToHeading(heading.index);
+                    }}
                   >
-                    <ChevronLeft className="h-4 w-4" aria-hidden />
-                  </Button>
-                </div>
-                <nav aria-label="Lesson sections" className="mt-2 space-y-1">
-                  {headings.map((heading) => (
-                    <button
-                      key={`mobile-${heading.index}-${heading.title}`}
-                      type="button"
-                      className={`block w-full rounded px-2 py-2 text-left text-sm transition-colors ${
-                        activeHeadingIndex === heading.index
-                          ? "bg-primary/10 text-primary font-medium"
-                          : "text-muted-foreground hover:text-foreground"
-                      }`}
-                      style={{ paddingLeft: `${(heading.level - 1) * 0.75 + 0.5}rem` }}
-                      onClick={() => {
-                        setIsMobileOutlineOpen(false);
-                        goToHeading(heading.index);
-                      }}
-                    >
-                      {heading.title}
-                    </button>
-                  ))}
-                </nav>
+                    {heading.title}
+                  </button>
+                ))}
+              </nav>
             </div>
             <Button
               type="button"
               size="icon"
               variant="primary"
-              className={`absolute left-0 top-1/2 h-10 w-8 -translate-y-1/2 rounded-l-none rounded-r-lg shadow-lg transition-all duration-200 ease-out ${
+              className={`absolute top-1/2 left-0 h-10 w-8 -translate-y-1/2 rounded-l-none rounded-r-lg shadow-lg transition-all duration-200 ease-out ${
                 isMobileOutlineOpen
                   ? "pointer-events-none -translate-x-4 opacity-0"
                   : "translate-x-0 opacity-100"
@@ -835,9 +891,9 @@ function TextLessonBody({
         <aside className="hidden lg:sticky lg:top-32 lg:col-start-3 lg:block">
           {searchPanel}
         </aside>
-        <div className="fixed inset-0 z-30 pointer-events-none lg:hidden">
+        <div className="pointer-events-none fixed inset-0 z-30 lg:hidden">
           <div
-            className={`pointer-events-auto fixed right-3 top-28 w-[min(22rem,calc(100vw-1.5rem))] rounded-lg bg-background/95 p-2 shadow-xl backdrop-blur transition-all duration-200 ease-out ${
+            className={`bg-background/95 pointer-events-auto fixed top-28 right-3 w-[min(22rem,calc(100vw-1.5rem))] rounded-lg p-2 shadow-xl backdrop-blur transition-all duration-200 ease-out ${
               isMobileSearchOpen
                 ? "translate-y-0 scale-100 opacity-100"
                 : "pointer-events-none -translate-y-2 scale-95 opacity-0"
@@ -847,7 +903,7 @@ function TextLessonBody({
               type="button"
               size="icon"
               variant="ghost"
-              className="absolute right-2 top-2 z-10 h-8 w-8"
+              className="absolute top-2 right-2 z-10 h-8 w-8"
               onClick={() => setIsMobileSearchOpen(false)}
               aria-label="Close lesson search"
             >
@@ -882,7 +938,7 @@ function TextLessonBody({
         <div
           className={
             headings.length > 0
-              ? "min-w-0 max-w-full lg:col-start-2"
+              ? "max-w-full min-w-0 lg:col-start-2"
               : "lesson-document min-w-0 lg:col-start-1"
           }
         >
@@ -891,18 +947,31 @@ function TextLessonBody({
             className="mb-5 flex flex-wrap items-center justify-between gap-2"
           >
             <div className="flex flex-wrap gap-2">
-              <Button type="button" size="sm" variant="outline" onClick={() => window.print()}>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={() => window.print()}
+              >
                 <Printer className="h-4 w-4" aria-hidden />
                 Print lesson
               </Button>
-              <Button type="button" size="sm" variant="outline" onClick={downloadLessonHtml}>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={downloadLessonHtml}
+              >
                 <Download className="h-4 w-4" aria-hidden />
                 Download HTML
               </Button>
             </div>
             {savedNote && <span className="text-success text-xs">Note saved</span>}
           </div>
-          <details data-lesson-actions className="border-border mb-6 rounded-lg border p-3">
+          <details
+            data-lesson-actions
+            className="border-border mb-6 rounded-lg border p-3"
+          >
             <summary className="flex cursor-pointer items-center gap-2 text-sm font-medium">
               <StickyNote className="h-4 w-4" aria-hidden />
               My lesson note
@@ -941,7 +1010,9 @@ function TextLessonBody({
                     type="button"
                     variant="outline"
                     size="sm"
-                    onClick={() => void downloadFile(fileId, `lesson-attachment-${index + 1}`)}
+                    onClick={() =>
+                      void downloadFile(fileId, `lesson-attachment-${index + 1}`)
+                    }
                   >
                     <Download className="h-4 w-4" />
                     Download attachment {index + 1}
@@ -974,7 +1045,6 @@ function getUrlHost(value: string): string {
     return "External website";
   }
 }
-
 
 function DirectVideoPlayer({
   src,
@@ -1095,7 +1165,9 @@ function DirectVideoPlayer({
 
 function formatChapterTime(seconds: number): string {
   const minutes = Math.floor(seconds / 60);
-  const remaining = Math.floor(seconds % 60).toString().padStart(2, "0");
+  const remaining = Math.floor(seconds % 60)
+    .toString()
+    .padStart(2, "0");
   return `${minutes}:${remaining}`;
 }
 
@@ -1208,10 +1280,7 @@ function AudioPlayer({
           onProgress(100);
         }}
       >
-        <source
-          src={src}
-          type={mimeType === "audio/x-m4a" ? "audio/mp4" : mimeType}
-        />
+        <source src={src} type={mimeType === "audio/x-m4a" ? "audio/mp4" : mimeType} />
       </audio>
       <div className="space-y-1.5">
         <div className="flex items-center justify-between text-xs">
@@ -1233,7 +1302,10 @@ function AudioPlayer({
         </div>
       </div>
       <div className="flex items-center justify-end gap-2">
-        <label htmlFor={`audio-playback-rate-${title}`} className="text-muted-foreground text-xs">
+        <label
+          htmlFor={`audio-playback-rate-${title}`}
+          className="text-muted-foreground text-xs"
+        >
           Speed
         </label>
         <select

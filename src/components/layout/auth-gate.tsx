@@ -4,14 +4,21 @@ import { useRouter } from "next/navigation";
 import { Loader2, ShieldAlert } from "lucide-react";
 
 import { useAuth } from "@/features/auth/hooks/useAuth";
-import { roleBasedLanding } from "@/lib/constants/routes";
+import { ADMIN_ROLES, LECTURER_ROLES, roleBasedLanding } from "@/lib/constants/routes";
 
 interface AuthGateProps {
   children: React.ReactNode;
   requiredRoles?: readonly string[];
+  requiredPermission?: string;
+  requireStaffProfile?: boolean;
 }
 
-export function AuthGate({ children, requiredRoles }: AuthGateProps) {
+export function AuthGate({
+  children,
+  requiredRoles,
+  requiredPermission,
+  requireStaffProfile = false,
+}: AuthGateProps) {
   const router = useRouter();
   const { user, status, isAuthenticated, loadSession } = useAuth();
 
@@ -25,14 +32,37 @@ export function AuthGate({ children, requiredRoles }: AuthGateProps) {
 
   const hasRequiredRole =
     !requiredRoles ||
-    (user && requiredRoles.some((r) => user.roles.some((role) => role === r)));
+    (user &&
+      (requiredRoles.some((r) => user.roles.some((role) => role === r)) ||
+        (requiredRoles.some((r) => (LECTURER_ROLES as readonly string[]).includes(r)) &&
+          (user.isStaff ||
+            user.roles.some((role) =>
+              (ADMIN_ROLES as readonly string[]).includes(role)
+            )))));
+  const hasRequiredPermission =
+    !requiredPermission ||
+    Boolean(
+      user &&
+        (user.isSuperuser ||
+          (user.permissions ?? []).includes(requiredPermission))
+    );
+  const hasStaffProfile = Boolean(user?.staffProfile);
+  const hasAccess =
+    hasRequiredRole && hasRequiredPermission && (!requireStaffProfile || hasStaffProfile);
 
   useEffect(() => {
-    if (isAuthenticated && user && requiredRoles && !hasRequiredRole) {
+    if (isAuthenticated && user && !hasAccess) {
       // Wrong role — send to their correct home
-      router.replace(roleBasedLanding(user.roles));
+      router.replace(
+        roleBasedLanding(
+          user.roles,
+          Boolean(user.staffProfile),
+          Boolean(user.studentProfile),
+          Boolean(user.isStaff)
+        )
+      );
     }
-  }, [isAuthenticated, user, requiredRoles, hasRequiredRole, router]);
+  }, [isAuthenticated, user, hasAccess, router]);
 
   if (status === "unknown" || status === "loading") {
     return (
@@ -47,7 +77,7 @@ export function AuthGate({ children, requiredRoles }: AuthGateProps) {
 
   if (!isAuthenticated) return null;
 
-  if (requiredRoles && !hasRequiredRole) {
+  if (!hasAccess) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center">
         <div className="text-muted-foreground flex flex-col items-center gap-2 text-center text-sm">

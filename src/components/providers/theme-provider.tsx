@@ -20,18 +20,30 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     if (stored) setThemeState(stored);
   }, []);
 
+  // Persist only on explicit choice — writing the initial "system" default
+  // from an effect would clobber the stored preference before it is loaded.
+  const setTheme = (next: Theme) => {
+    setThemeState(next);
+    localStorage.setItem("gu-lms-theme", next);
+  };
+
   useEffect(() => {
     const root = document.documentElement;
-    const media = window.matchMedia("(prefers-color-scheme: light)"); // might want to change this value to dark if wanted later on
-    const applied = theme === "system" ? (media.matches ? "dark" : "light") : theme;
+    const media = window.matchMedia("(prefers-color-scheme: dark)");
+    const applyTheme = () => {
+      const applied = theme === "system" ? (media.matches ? "dark" : "light") : theme;
+      root.classList.toggle("dark", applied === "dark");
+      setResolved(applied);
+    };
 
-    root.classList.toggle("dark", applied === "dark");
-    setResolved(applied);
-    localStorage.setItem("gu-lms-theme", theme);
+    applyTheme();
+    media.addEventListener("change", applyTheme);
+
+    return () => media.removeEventListener("change", applyTheme);
   }, [theme]);
 
   return (
-    <ThemeContext.Provider value={{ theme, resolvedTheme, setTheme: setThemeState }}>
+    <ThemeContext.Provider value={{ theme, resolvedTheme, setTheme }}>
       {children}
     </ThemeContext.Provider>
   );

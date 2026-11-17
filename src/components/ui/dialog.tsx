@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useRef } from "react";
+import type { ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 
@@ -15,10 +16,10 @@ type DialogSize = "sm" | "md" | "lg" | "xl";
 interface DialogProps {
   open: boolean;
   onClose: () => void;
-  title?: string;
-  description?: string;
-  children: React.ReactNode;
-  footer?: React.ReactNode;
+  title?: ReactNode;
+  description?: ReactNode;
+  children: ReactNode;
+  footer?: ReactNode;
   size?: DialogSize;
   locked?: boolean;
 }

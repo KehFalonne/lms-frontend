@@ -35,7 +35,7 @@ export default function ContentItemPageClient({
 
       {isLoading && <Skeleton className="h-96 w-full" />}
       {isError && <ErrorState onRetry={() => refetch()} />}
-      {item && <ContentViewer item={item} offeringId={courseId} />}
+      {item && <ContentViewer key={item.id} item={item} offeringId={courseId} />}
     </div>
   );
 }

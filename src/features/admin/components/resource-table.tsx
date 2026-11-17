@@ -1,12 +1,11 @@
 "use client";
 import { useMemo, useState } from "react";
-import { Plus, Search, Trash2 } from "lucide-react";
+import { Plus, Search, Trash2, Edit2, Layers } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import { Dialog } from "@/components/ui/dialog";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ErrorState } from "@/components/ui/error-state";
@@ -19,6 +18,7 @@ import { del, get, patch, post } from "@/lib/api/client";
 import type { ApiResponse, PaginationMeta } from "@/types/api.types";
 import { normalizeError } from "@/lib/api/errors";
 import { useDebounce } from "@/hooks/useDebounce";
+import { cn } from "@/lib/utils/cn";
 
 export type FieldType = "text" | "textarea" | "number" | "date" | "select";
 
@@ -230,23 +230,38 @@ export function ResourceTable<T extends { id: string }>({
   const EmptyIcon = emptyIcon;
 
   return (
-    <div>
-      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+    <div className="space-y-5">
+      {/* ─── Header ────────────────────────────────────────────── */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="text-2xl font-semibold">{title}</h1>
+          <p className="text-primary flex items-center gap-2 text-[10px] font-semibold tracking-[0.22em] uppercase">
+            <span aria-hidden className="bg-primary/50 h-px w-6" />
+            Institutional Catalogue
+          </p>
+          <h1 className="text-foreground mt-1.5 text-2xl font-bold tracking-tight sm:text-3xl">
+            {title}
+          </h1>
           {description && (
-            <p className="text-muted-foreground mt-1 text-sm">{description}</p>
+            <p className="text-muted-foreground mt-1 max-w-xl text-xs leading-relaxed sm:text-sm">
+              {description}
+            </p>
           )}
         </div>
-        <Button size="sm" onClick={openCreate}>
-          <Plus className="mr-1.5 h-4 w-4" /> New
+        <Button
+          size="sm"
+          onClick={openCreate}
+          className="h-9 gap-1.5 self-start px-4 text-xs shadow-sm sm:self-auto"
+        >
+          <Plus className="h-4 w-4" />
+          <span>New {title.replace(/s$/, "")}</span>
         </Button>
       </div>
 
+      {/* ─── Filter bar ────────────────────────────────────────── */}
       {searchable && (
-        <div className="mb-4 max-w-sm">
+        <div className="max-w-sm">
           <div className="relative">
-            <Search className="text-muted-foreground absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2" />
+            <Search className="text-muted-foreground absolute top-1/2 left-3 h-3.5 w-3.5 -translate-y-1/2" />
             <Input
               placeholder={`Search ${title.toLowerCase()}...`}
               value={search}
@@ -254,16 +269,17 @@ export function ResourceTable<T extends { id: string }>({
                 setSearch(e.target.value);
                 setPage(1);
               }}
-              className="pl-9"
+              className="h-9 pl-9 text-xs"
             />
           </div>
         </div>
       )}
 
+      {/* ─── States ────────────────────────────────────────────── */}
       {isLoading && (
         <div className="space-y-2">
           {Array.from({ length: 5 }).map((_, i) => (
-            <Skeleton key={i} className="h-14 w-full" />
+            <Skeleton key={i} className="h-14 w-full rounded-xl" />
           ))}
         </div>
       )}
@@ -274,10 +290,11 @@ export function ResourceTable<T extends { id: string }>({
         <EmptyState icon={EmptyIcon} title="Nothing to show" description={emptyMessage} />
       )}
 
+      {/* ─── Frosted Glass Table ───────────────────────────────── */}
       {!isLoading && !isError && rows.length > 0 && (
         <>
-          <Card className="divide-border divide-y">
-            <div className="border-border bg-surface/60 text-muted-foreground hidden border-b px-4 py-2 text-xs font-medium tracking-wide uppercase sm:grid sm:grid-cols-[repeat(auto-fit,minmax(0,1fr))_120px]">
+          <div className="ring-primary/10 overflow-hidden rounded-2xl border border-white/60 bg-white/85 shadow-[0_24px_48px_-28px_hsl(222_47%_22%/0.5)] ring-1 backdrop-blur-md dark:border-white/10 dark:bg-slate-800/75">
+            <div className="border-border/60 bg-muted/40 text-muted-foreground hidden border-b px-5 py-3 text-[11px] font-semibold tracking-wider uppercase sm:grid sm:grid-cols-[repeat(auto-fit,minmax(0,1fr))_140px]">
               {columns.map((c) => (
                 <div key={c.key}>{c.header}</div>
               ))}
@@ -286,55 +303,69 @@ export function ResourceTable<T extends { id: string }>({
             {rows.map((row) => (
               <div
                 key={row.id}
-                className="flex flex-col gap-2 p-4 sm:grid sm:grid-cols-[repeat(auto-fit,minmax(0,1fr))_120px] sm:items-center"
+                className="border-border/40 hover:bg-primary/[0.03] flex flex-col gap-2 border-b p-4 transition-colors last:border-b-0 sm:grid sm:grid-cols-[repeat(auto-fit,minmax(0,1fr))_140px] sm:items-center sm:px-5 sm:py-3.5"
               >
                 {columns.map((c) => (
-                  <div key={c.key} className="text-sm">
-                    <span className="text-muted-foreground text-xs uppercase sm:hidden">
+                  <div key={c.key} className="text-xs sm:text-sm">
+                    <span className="text-muted-foreground text-[10px] font-semibold uppercase sm:hidden">
                       {c.header}:{" "}
                     </span>
                     {c.render(row)}
                   </div>
                 ))}
-                <div className="flex gap-1 sm:justify-end">
+                <div className="flex items-center gap-1.5 sm:justify-end">
                   {rowActions.map((action, i) => (
                     <Button
                       key={i}
                       size="sm"
                       variant={action.variant === "danger" ? "ghost" : "outline"}
-                      className={action.variant === "danger" ? "text-danger" : ""}
+                      className={cn(
+                        "h-7 px-2 text-xs",
+                        action.variant === "danger"
+                          ? "text-danger hover:bg-danger/10"
+                          : ""
+                      )}
                       disabled={action.disabled?.(row)}
                       onClick={() => action.onClick(row)}
                     >
-                      {action.icon && <action.icon className="mr-1 h-3.5 w-3.5" />}
+                      {action.icon && <action.icon className="mr-1 h-3 w-3" />}
                       {action.label}
                     </Button>
                   ))}
-                  <Button size="sm" variant="ghost" onClick={() => openEdit(row)}>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="text-primary hover:bg-primary/10 h-7 px-2 text-xs"
+                    onClick={() => openEdit(row)}
+                  >
+                    <Edit2 className="mr-1 h-3 w-3" />
                     Edit
                   </Button>
                   <Button
                     size="icon"
                     variant="ghost"
-                    className="text-danger"
+                    className="text-danger hover:bg-danger/10 h-7 w-7"
+                    title="Delete item"
                     onClick={() => {
                       if (confirm("Delete this item?")) {
                         deleteMutation.mutate(row.id);
                       }
                     }}
                   >
-                    <Trash2 className="h-4 w-4" />
+                    <Trash2 className="h-3.5 w-3.5" />
                   </Button>
                 </div>
               </div>
             ))}
-          </Card>
+          </div>
+
           <div className="mt-4">
             <Pagination meta={meta} onPageChange={setPage} />
           </div>
         </>
       )}
 
+      {/* ─── Modals ────────────────────────────────────────────── */}
       <Dialog
         open={createOpen}
         onClose={() => !createMutation.isPending && setCreateOpen(false)}
@@ -342,7 +373,7 @@ export function ResourceTable<T extends { id: string }>({
         size="lg"
         locked={createMutation.isPending}
         footer={
-          <>
+          <div className="flex justify-end gap-2">
             <Button
               variant="outline"
               onClick={() => setCreateOpen(false)}
@@ -353,7 +384,7 @@ export function ResourceTable<T extends { id: string }>({
             <Button onClick={onSubmit} loading={createMutation.isPending}>
               Create
             </Button>
-          </>
+          </div>
         }
       >
         {renderForm()}
@@ -366,7 +397,7 @@ export function ResourceTable<T extends { id: string }>({
         size="lg"
         locked={updateMutation.isPending}
         footer={
-          <>
+          <div className="flex justify-end gap-2">
             <Button
               variant="outline"
               onClick={() => setEditRow(null)}
@@ -377,7 +408,7 @@ export function ResourceTable<T extends { id: string }>({
             <Button onClick={onSubmit} loading={updateMutation.isPending}>
               Save
             </Button>
-          </>
+          </div>
         }
       >
         {renderForm()}

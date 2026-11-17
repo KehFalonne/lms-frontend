@@ -5,6 +5,7 @@ import type {
   AdminStats,
   AdminUser,
   AdminUserRoleAssignment,
+  AuditFacets,
   AuditLog,
   CreateUserPayload,
   Permission,
@@ -25,7 +26,7 @@ export async function createUser(payload: CreateUserPayload) {
   return post<ApiResponse<AdminUser>>(endpoints.users.list, payload);
 }
 
-export async function updateUser(id: string, payload: Partial<AdminUser>) {
+export async function updateUser(id: string, payload: Partial<CreateUserPayload>) {
   return patch<ApiResponse<AdminUser>>(endpoints.users.detail(id), payload);
 }
 
@@ -35,6 +36,13 @@ export async function activateUser(id: string) {
 
 export async function deactivateUser(id: string) {
   return post<ApiResponse<AdminUser>>(endpoints.users.deactivate(id));
+}
+
+export async function resetUserPassword(
+  id: string,
+  payload: { password: string; passwordConfirmation: string }
+) {
+  return post<ApiResponse<null>>(endpoints.users.resetPassword(id), payload);
 }
 
 export async function listUserRoles(id: string) {
@@ -108,9 +116,17 @@ export async function listAuditLogs(
     action?: string;
     entityType?: string;
     actorId?: string;
+    actor?: string;
+    entityId?: string;
+    createdFrom?: string;
+    createdTo?: string;
   }
 ) {
   return get<ApiResponse<AuditLog[]>>(endpoints.audit.logs, { params });
+}
+
+export async function getAuditFacets() {
+  return get<ApiResponse<AuditFacets>>(endpoints.audit.facets);
 }
 
 // ── Stats ─────────────────────────────────────────────────────────

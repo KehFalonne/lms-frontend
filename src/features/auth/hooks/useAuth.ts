@@ -63,6 +63,15 @@ export function useAuth() {
     }
   }, [clear, queryClient, router]);
 
+  const updateAvatar = useCallback(
+    async (fileId: string): Promise<AuthUser> => {
+      const res = await authApi.updateAvatar(fileId);
+      setUser(res.data);
+      return res.data;
+    },
+    [setUser]
+  );
+
   return {
     user,
     status,
@@ -71,6 +80,7 @@ export function useAuth() {
     login,
     logout,
     loadSession,
+    updateAvatar,
   };
 }
 

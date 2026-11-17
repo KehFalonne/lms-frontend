@@ -28,12 +28,21 @@ export interface MyAssignment {
   mySubmission: MySubmissionSummary | null;
 }
 
+export interface AssignmentAttachment {
+  id: string;
+  fileId: string;
+  originalName: string;
+  sizeBytes: number;
+  mimeType: string;
+}
+
 export interface AssignmentDetail {
   id: string;
   courseOfferingId: string;
   title: string;
   description: string;
   instructions: string;
+  attachments: AssignmentAttachment[];
   maxScore: string;
   availableFrom: string | null;
   dueAt: string;

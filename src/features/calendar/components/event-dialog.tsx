@@ -29,7 +29,12 @@ export function EventDialog({ event, onClose }: Props) {
       onClose={() => !del.isPending && onClose()}
       title={event.title}
       description={
-        event.courseCode ? `${event.courseCode} · ${event.courseTitle}` : undefined
+        event.courseCode ? (
+          <>
+            <span className="course-code">{event.courseCode}</span>
+            {event.courseTitle && ` · ${event.courseTitle}`}
+          </>
+        ) : undefined
       }
       footer={
         <>

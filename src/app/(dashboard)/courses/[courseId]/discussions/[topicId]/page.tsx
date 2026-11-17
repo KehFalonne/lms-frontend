@@ -4,9 +4,6 @@ import Link from "next/link";
 import { ArrowLeft, AlertCircle, Lock, MessageSquare, Pin } from "lucide-react";
 
 import { Avatar } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ErrorState } from "@/components/ui/error-state";
@@ -89,76 +86,76 @@ export default function TopicDetailPage({
   return (
     <div className="-mx-4 -my-4 flex h-[calc(100vh-8rem)] flex-col sm:-mx-6 sm:-my-6">
       {/* ── Header ─────────────────────────────────────────────────── */}
-      <header className="border-border bg-background border-b px-4 py-3 sm:px-6">
-        <div className="flex items-center gap-3">
-          <Link
-            href={`/courses/${courseId}/discussions`}
-            className="hover:bg-surface shrink-0 rounded-md p-1"
-            aria-label="Back to discussions"
-          >
-            <ArrowLeft className="h-5 w-5" />
-          </Link>
+      <header className="border-border/70 bg-background/95 flex h-14 items-center gap-3 border-b px-3 backdrop-blur sm:h-16 sm:px-5">
+        <Link
+          href={`/courses/${courseId}/discussions`}
+          className="text-muted-foreground hover:text-foreground hover:bg-muted/60 -ml-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg transition-colors outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+          aria-label="Back to discussions"
+        >
+          <ArrowLeft className="h-5 w-5" aria-hidden />
+        </Link>
 
-          <div className="bg-primary/10 text-primary flex h-10 w-10 shrink-0 items-center justify-center rounded-full">
-            <MessageSquare className="h-5 w-5" />
-          </div>
+        {topic.createdBy ? (
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-[10px] font-bold uppercase tracking-wide text-primary ring-1 ring-primary/15">
+            {`${topic.createdBy.firstName?.[0] ?? ""}${topic.createdBy.lastName?.[0] ?? ""}`.toUpperCase()}
+          </span>
+        ) : (
+          <span className="bg-primary/10 text-primary flex h-10 w-10 shrink-0 items-center justify-center rounded-xl">
+            <MessageSquare className="h-5 w-5" aria-hidden />
+          </span>
+        )}
 
-          <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-1.5">
-              <h1 className="truncate text-base font-semibold">{topic.title}</h1>
-              {topic.isPinned && <Pin className="text-warning h-3.5 w-3.5 shrink-0" />}
-              {topic.isLocked && (
-                <Lock className="text-muted-foreground h-3.5 w-3.5 shrink-0" />
-              )}
-            </div>
-            <p className="text-muted-foreground truncate text-xs">
-              {topic.createdBy
-                ? `${topic.createdBy.firstName} ${topic.createdBy.lastName}`
-                : "Unknown"}{" "}
-              · {posts.length} {posts.length === 1 ? "message" : "messages"}
-            </p>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-1.5">
+            <h1 className="truncate text-base font-semibold">{topic.title}</h1>
+            {topic.isPinned && <Pin className="text-warning h-3.5 w-3.5 shrink-0" aria-hidden />}
+            {topic.isLocked && (
+              <Lock className="text-muted-foreground h-3.5 w-3.5 shrink-0" aria-hidden />
+            )}
           </div>
+          <p className="text-muted-foreground truncate text-[10px] font-semibold uppercase tracking-[0.16em]">
+            <span className="tabular-nums">{posts.length}</span>{" "}
+            {posts.length === 1 ? "message" : "messages"}
+          </p>
         </div>
       </header>
 
       {/* ── Messages ───────────────────────────────────────────────── */}
       <div
         ref={scrollRef}
-        className="bg-surface/30 flex-1 overflow-y-auto px-3 py-4 sm:px-6"
+        className="flex-1 overflow-y-auto px-3 py-4 [background-image:radial-gradient(hsl(var(--muted-foreground)/0.08)_1.1px,transparent_1.1px)] [background-size:22px_22px] sm:px-6"
       >
         {/* Pinned opening message from the topic */}
-        <Card className="border-primary/20 bg-primary/5 mb-6">
-          <CardContent className="p-4">
-            <div className="flex items-start gap-2">
-              <Avatar
-                size="sm"
-                fallback={
-                  topic.createdBy
-                    ? `${topic.createdBy.firstName[0] ?? ""}${topic.createdBy.lastName[0] ?? ""}`.toUpperCase()
-                    : "?"
-                }
-              />
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2">
-                  <p className="text-xs font-semibold">
-                    {topic.createdBy
-                      ? `${topic.createdBy.firstName} ${topic.createdBy.lastName}`
-                      : "Unknown"}
-                  </p>
-                  <Badge variant="primary" className="text-[10px]">
-                    Topic
-                  </Badge>
-                  <span className="text-muted-foreground text-xs">
-                    {relativeTime(topic.createdAt)}
-                  </span>
-                </div>
-                <p className="mt-2 text-sm leading-relaxed whitespace-pre-line">
-                  {topic.body}
+        <article className="border-primary/20 bg-primary/[0.05] dark:bg-primary/[0.08] dark:border-primary/25 mb-6 rounded-2xl border p-4 ring-1 ring-primary/10">
+          <div className="flex items-start gap-3">
+            <Avatar
+              size="sm"
+              fallback={
+                topic.createdBy
+                  ? `${topic.createdBy.firstName[0] ?? ""}${topic.createdBy.lastName[0] ?? ""}`.toUpperCase()
+                  : "?"
+              }
+            />
+            <div className="min-w-0 flex-1">
+              <div className="flex flex-wrap items-center gap-2">
+                <p className="text-xs font-semibold">
+                  {topic.createdBy
+                    ? `${topic.createdBy.firstName} ${topic.createdBy.lastName}`
+                    : "Unknown"}
                 </p>
+                <span className="bg-primary/10 text-primary rounded-full px-2 py-0.5 text-[8px] font-semibold uppercase tracking-widest ring-1 ring-primary/20">
+                  Topic
+                </span>
+                <span className="text-muted-foreground text-[10px]">
+                  {relativeTime(topic.createdAt)}
+                </span>
               </div>
+              <p className="mt-2 text-sm leading-relaxed whitespace-pre-line text-foreground/90">
+                {topic.body}
+              </p>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </article>
 
         {posts.length === 0 ? (
           <EmptyState
@@ -175,9 +172,9 @@ export default function TopicDetailPage({
 
       {/* ── Input ─────────────────────────────────────────────────── */}
       {topic.isLocked ? (
-        <div className="border-border bg-background text-muted-foreground border-t px-4 py-3 text-center text-sm">
-          <Lock className="mr-1 inline h-4 w-4" />
-          This topic is locked. You cannot reply.
+        <div className="border-border/70 bg-background/95 flex items-center justify-center gap-2 border-t px-4 py-3 text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground backdrop-blur">
+          <Lock className="h-4 w-4" aria-hidden />
+          This topic is locked — you cannot reply.
         </div>
       ) : (
         <ChatInput

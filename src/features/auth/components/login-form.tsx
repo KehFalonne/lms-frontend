@@ -11,6 +11,7 @@ import { loginSchema, type LoginInput } from "../schemas/auth.schema";
 import { useAuth } from "../hooks/useAuth";
 import { normalizeError } from "@/lib/api/errors";
 import { roleBasedLanding } from "@/lib/constants/routes";
+import Link from "next/link";
 
 export function LoginForm() {
   const router = useRouter();
@@ -27,7 +28,14 @@ export function LoginForm() {
     setServerError(null);
     try {
       const user = await login(values);
-      router.push(roleBasedLanding(user.roles));
+      router.push(
+        roleBasedLanding(
+          user.roles,
+          Boolean(user.staffProfile),
+          Boolean(user.studentProfile),
+          Boolean(user.isStaff)
+        )
+      );
     } catch (err) {
       setServerError(normalizeError(err).message);
     }
@@ -52,9 +60,17 @@ export function LoginForm() {
       </div>
 
       <div>
-        <label htmlFor="password" className="mb-1.5 block text-sm font-medium">
-          Password
-        </label>
+        <div className="mb-1.5 flex items-baseline justify-between gap-4">
+          <label htmlFor="password" className="text-sm font-medium">
+            Password
+          </label>
+          <Link
+            href="/forgot-password"
+            className="text-primary text-xs font-medium transition-colors hover:underline"
+          >
+            Forgot password?
+          </Link>
+        </div>
         <Input
           id="password"
           type="password"

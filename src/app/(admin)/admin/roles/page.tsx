@@ -1,12 +1,11 @@
 "use client";
 import Link from "next/link";
-import { ChevronRight, Shield, Trash2 } from "lucide-react";
+import { ChevronRight, Shield, ShieldCheck, Trash2 } from "lucide-react";
 
 import { AuthGate } from "@/components/layout/auth-gate";
 import { PageHeader } from "@/components/layout/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ErrorState } from "@/components/ui/error-state";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -28,17 +27,18 @@ function RolesContent() {
   const roles = data?.data ?? [];
 
   return (
-    <div>
+    <div className="space-y-6">
       <PageHeader
-        title="Roles & Permissions"
-        description="Define roles and the permissions they grant."
+        eyebrow="Security & Access Governance"
+        title="Roles &amp; Permissions"
+        description="Configure institutional roles, define fine-grained permission scopes, and manage access privileges across faculties."
         actions={<RoleFormDialog />}
       />
 
       {isLoading && (
-        <div className="space-y-2">
+        <div className="space-y-3">
           {Array.from({ length: 5 }).map((_, i) => (
-            <Skeleton key={i} className="h-20 w-full" />
+            <Skeleton key={i} className="h-20 w-full rounded-2xl" />
           ))}
         </div>
       )}
@@ -48,47 +48,65 @@ function RolesContent() {
       {!isLoading && !isError && roles.length === 0 && (
         <EmptyState
           icon={Shield}
-          title="No roles"
-          description="Create a role to begin."
+          title="No custom roles defined"
+          description="Create custom institutional roles to assign RBAC permissions."
         />
       )}
 
       {!isLoading && !isError && roles.length > 0 && (
-        <Card className="divide-border divide-y">
+        <div className="ring-primary/10 divide-border/40 divide-y overflow-hidden rounded-2xl border border-white/60 bg-white/85 shadow-[0_24px_48px_-28px_hsl(222_47%_22%/0.5)] ring-1 backdrop-blur-md dark:border-white/10 dark:bg-slate-800/75">
           {roles.map((r) => (
             <div
               key={r.id}
-              className="hover:bg-surface/50 flex items-center gap-3 p-4 transition-colors"
+              className="hover:bg-primary/[0.03] flex items-center justify-between gap-4 p-4 transition-colors sm:px-5"
             >
-              <div className="bg-primary/10 text-primary flex h-10 w-10 shrink-0 items-center justify-center rounded-md">
-                <Shield className="h-5 w-5" />
-              </div>
-              <Link href={`/admin/roles/${r.id}`} className="min-w-0 flex-1">
-                <div className="flex flex-wrap items-center gap-2">
-                  <p className="font-medium">{r.name}</p>
-                  <Badge variant="outline">{r.code}</Badge>
-                  {r.isSystemRole && <Badge variant="info">System</Badge>}
+              <div className="flex min-w-0 flex-1 items-center gap-3.5">
+                <div className="bg-primary/10 text-primary ring-primary/20 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ring-1">
+                  <ShieldCheck className="h-5 w-5" />
                 </div>
-                {r.description && (
-                  <p className="text-muted-foreground truncate text-xs">
-                    {r.description}
+                <Link href={`/admin/roles/${r.id}`} className="group min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <p className="text-foreground group-hover:text-primary text-xs font-semibold transition-colors sm:text-sm">
+                      {r.name}
+                    </p>
+                    <Badge variant="outline" className="font-mono text-[10px]">
+                      {r.code}
+                    </Badge>
+                    {r.isSystemRole && (
+                      <Badge variant="info" className="text-[10px]">
+                        System Default
+                      </Badge>
+                    )}
+                  </div>
+                  {r.description && (
+                    <p className="text-muted-foreground mt-0.5 truncate text-xs">
+                      {r.description}
+                    </p>
+                  )}
+                  <p className="text-muted-foreground mt-1 text-[11px] font-medium">
+                    <span className="text-foreground font-semibold">{r.userCount}</span>{" "}
+                    assigned user{r.userCount === 1 ? "" : "s"} ·{" "}
+                    <span className="text-foreground font-semibold">
+                      {r.permissionCount}
+                    </span>{" "}
+                    permissions granted
                   </p>
-                )}
-                <p className="text-muted-foreground mt-0.5 text-xs">
-                  {r.userCount} users · {r.permissionCount} permissions
-                </p>
-              </Link>
-              <div className="flex shrink-0 gap-1">
+                </Link>
+              </div>
+
+              <div className="flex shrink-0 items-center gap-1.5">
                 <Link href={`/admin/roles/${r.id}`}>
-                  <Button variant="ghost" size="icon">
-                    <ChevronRight className="h-4 w-4" />
+                  <Button variant="outline" size="sm" className="h-8 gap-1 px-3 text-xs">
+                    Configure
+                    <ChevronRight className="h-3.5 w-3.5" />
                   </Button>
                 </Link>
                 {!r.isSystemRole && (
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="text-danger"
+                    className="text-danger hover:bg-danger/10 h-8 w-8"
+                    title="Delete role"
                     onClick={() => {
                       if (confirm(`Delete role "${r.name}"?`)) {
                         del.mutate(r.id);
@@ -102,7 +120,7 @@ function RolesContent() {
               </div>
             </div>
           ))}
-        </Card>
+        </div>
       )}
     </div>
   );

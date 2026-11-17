@@ -126,24 +126,34 @@ export function MonthView({
                   return (
                     <button
                       key={e.id}
+                      type="button"
+                      title={`${e.title}${e.allDay ? "" : ` · ${format(new Date(e.startAt), "h:mm a")}`}`}
                       onClick={(ev) => {
                         ev.stopPropagation();
                         onEventClick(e);
                       }}
                       className={cn(
-                        "block w-full truncate rounded px-1 py-0.5 text-left text-[10px] sm:text-xs",
+                        "flex w-full items-center gap-1 truncate rounded px-1 py-0.5 text-left text-[10px] font-medium transition-transform hover:scale-[1.02] sm:text-xs",
                         style.bg,
                         style.text
                       )}
                     >
-                      {e.title}
+                      <span aria-hidden className={cn("h-1.5 w-1.5 shrink-0 rounded-full", style.dot)} />
+                      <span className="truncate">{e.title}</span>
                     </button>
                   );
                 })}
                 {dayEvents.length > 2 && (
-                  <div className="text-muted-foreground text-[10px]">
+                  <button
+                    type="button"
+                    onClick={(ev) => {
+                      ev.stopPropagation();
+                      onSelect(day);
+                    }}
+                    className="text-primary px-1 text-[10px] font-semibold hover:underline"
+                  >
                     +{dayEvents.length - 2} more
-                  </div>
+                  </button>
                 )}
               </div>
             </div>

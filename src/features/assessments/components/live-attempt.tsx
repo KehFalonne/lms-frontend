@@ -276,13 +276,14 @@ export function LiveAttempt({ attemptId }: LiveAttemptProps) {
 
   return (
     <div className="flex min-h-screen flex-col">
-      {/* Compact sticky header */}
-      <div className="border-border bg-background/95 pt-safe sticky top-0 z-30 -mx-4 -mt-4 border-b px-4 py-2 backdrop-blur sm:-mx-6 sm:-mt-6 sm:px-6">
-        <div className="flex items-center justify-between gap-3">
+      {/* Sticky exam header */}
+      <div className="border-border bg-background/95 pt-safe sticky top-0 z-30 -mx-4 -mt-4 border-b backdrop-blur sm:-mx-6 sm:-mt-6">
+        <div className="mx-auto flex w-full max-w-5xl items-center justify-between gap-3 px-4 py-3 sm:px-6">
           <div className="min-w-0 flex-1">
             <p className="truncate text-sm font-semibold">{attempt.assessmentTitle}</p>
-            <p className="text-muted-foreground text-xs">
-              Q{currentIdx + 1}/{attempt.questions.length} · {answeredCount} answered
+            <p className="text-muted-foreground mt-0.5 text-xs">
+              Question {currentIdx + 1} of {attempt.questions.length} · {answeredCount}{" "}
+              answered
             </p>
           </div>
 
@@ -296,7 +297,7 @@ export function LiveAttempt({ attemptId }: LiveAttemptProps) {
             )}
             <div
               className={cn(
-                "flex items-center gap-1.5 rounded-md px-2.5 py-1.5 font-mono text-sm font-semibold tabular-nums",
+                "flex items-center gap-1.5 rounded-md px-3 py-1.5 font-mono text-sm font-semibold tabular-nums",
                 timerDanger ? "bg-danger/10 text-danger" : "bg-primary/10 text-primary"
               )}
             >
@@ -304,6 +305,14 @@ export function LiveAttempt({ attemptId }: LiveAttemptProps) {
               {String(minutes).padStart(2, "0")}:{String(seconds).padStart(2, "0")}
             </div>
           </div>
+        </div>
+        <div className="bg-muted h-1 w-full" aria-hidden>
+          <div
+            className="bg-primary h-full transition-all duration-300"
+            style={{
+              width: `${((currentIdx + 1) / attempt.questions.length) * 100}%`,
+            }}
+          />
         </div>
       </div>
 
@@ -315,45 +324,71 @@ export function LiveAttempt({ attemptId }: LiveAttemptProps) {
         reportError={proctoring.reportError}
       />
 
-      {/* Question body */}
-      <div className="flex-1 py-4">
-        <Card className="p-4 sm:p-6">
-          <div className="flex items-start justify-between gap-2">
-            <div className="flex flex-wrap items-center gap-2">
-              <Badge variant="primary">Q{q.position}</Badge>
-              <Badge>{q.points} pts</Badge>
+      {/* Question area — question on the left, palette on the right (desktop) */}
+      <div className="mx-auto w-full max-w-5xl flex-1 py-6">
+        <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_15rem]">
+          <Card className="p-5 sm:p-7">
+            <div className="flex items-start justify-between gap-2">
+              <div className="flex flex-wrap items-center gap-2">
+                <Badge variant="primary">Question {q.position}</Badge>
+                <Badge variant="outline">{q.points} pts</Badge>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => toggleFlag(q.id)}
+                className={flags.has(q.id) ? "text-warning" : ""}
+                aria-label={flags.has(q.id) ? "Unflag" : "Flag"}
+              >
+                <Flag className="mr-1 h-3.5 w-3.5" />
+                <span className="hidden sm:inline">
+                  {flags.has(q.id) ? "Flagged" : "Flag"}
+                </span>
+              </Button>
             </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => toggleFlag(q.id)}
-              className={flags.has(q.id) ? "text-warning" : ""}
-              aria-label={flags.has(q.id) ? "Unflag" : "Flag"}
-            >
-              <Flag className="mr-1 h-3.5 w-3.5" />
-              <span className="hidden sm:inline">
-                {flags.has(q.id) ? "Flagged" : "Flag"}
-              </span>
-            </Button>
-          </div>
 
-          <h2 className="mt-3 text-base font-medium whitespace-pre-line sm:text-lg">
-            {q.text}
-          </h2>
+            <h2 className="mt-4 text-lg font-semibold leading-relaxed whitespace-pre-line sm:text-xl">
+              {q.text}
+            </h2>
 
-          <div className="mt-4">
-            <QuestionRenderer
-              question={q}
-              value={answers[q.id]}
-              onChange={(next) => updateAnswer(q.id, next)}
-            />
-          </div>
-        </Card>
+            <div className="mt-6">
+              <QuestionRenderer
+                question={q}
+                value={answers[q.id]}
+                onChange={(next) => updateAnswer(q.id, next)}
+              />
+            </div>
+          </Card>
+
+          {/* Question palette — desktop */}
+          <aside className="hidden lg:block">
+            <Card className="p-4">
+              <p className="text-muted-foreground mb-3 text-xs font-semibold tracking-wide uppercase">
+                Questions
+              </p>
+              <QuestionGrid
+                attempt={attempt}
+                answers={answers}
+                flags={flags}
+                currentIdx={currentIdx}
+                onSelect={setCurrentIdx}
+              />
+              <PaletteLegend />
+              <Button
+                className="mt-4 w-full"
+                onClick={() => setConfirmSubmit(true)}
+                loading={submitMutation.isPending}
+              >
+                Submit
+              </Button>
+            </Card>
+          </aside>
+        </div>
       </div>
 
       {/* Sticky bottom action bar — always reachable */}
-      <div className="border-border bg-background/95 pb-safe sticky bottom-0 z-20 -mx-4 -mb-4 border-t px-4 py-3 backdrop-blur sm:-mx-6 sm:-mb-6 sm:px-6">
-        <div className="flex items-center gap-2">
+      <div className="border-border bg-background/95 pb-safe sticky bottom-0 z-20 -mx-4 -mb-4 border-t backdrop-blur sm:-mx-6 sm:-mb-6">
+        <div className="mx-auto flex w-full max-w-5xl items-center gap-2 px-4 py-3 sm:px-6">
           <Button
             variant="outline"
             disabled={currentIdx === 0}
@@ -368,52 +403,28 @@ export function LiveAttempt({ attemptId }: LiveAttemptProps) {
           <Button
             variant="outline"
             onClick={() => setNavigatorOpen(true)}
-            className="flex-1 sm:hidden"
+            className="flex-1 lg:hidden"
           >
             <ListChecks className="mr-1 h-4 w-4" />
             Navigate
           </Button>
 
+          <div className="flex-1" />
+
           {!isLast ? (
-            <Button
-              onClick={() => setCurrentIdx((i) => i + 1)}
-              className="flex-1 sm:flex-initial"
-            >
+            <Button onClick={() => setCurrentIdx((i) => i + 1)}>
               Next <ChevronRight className="ml-1 h-4 w-4" />
             </Button>
           ) : (
             <Button
               onClick={() => setConfirmSubmit(true)}
-              className="flex-1 sm:flex-initial"
+              loading={submitMutation.isPending}
             >
               Submit
             </Button>
           )}
         </div>
       </div>
-
-      {/* Question navigator — drawer on mobile, sidebar on desktop */}
-      <aside className="hidden lg:fixed lg:top-24 lg:right-6 lg:block lg:w-56">
-        <Card className="p-4">
-          <p className="text-muted-foreground mb-3 text-xs font-semibold tracking-wide uppercase">
-            Questions
-          </p>
-          <QuestionGrid
-            attempt={attempt}
-            answers={answers}
-            flags={flags}
-            currentIdx={currentIdx}
-            onSelect={setCurrentIdx}
-          />
-          <Button
-            className="mt-4 w-full"
-            onClick={() => setConfirmSubmit(true)}
-            loading={submitMutation.isPending}
-          >
-            Submit
-          </Button>
-        </Card>
-      </aside>
 
       {navigatorOpen && (
         <div className="fixed inset-0 z-50 lg:hidden">
@@ -568,6 +579,28 @@ function QuestionGrid({
         );
       })}
     </div>
+  );
+}
+
+function PaletteLegend() {
+  const items = [
+    { label: "Current", className: "border-primary bg-primary" },
+    { label: "Answered", className: "border-success/40 bg-success/10" },
+    { label: "Unanswered", className: "border-border" },
+    {
+      label: "Flagged",
+      className: "border-border ring-warning ring-1",
+    },
+  ];
+  return (
+    <ul className="text-muted-foreground mt-3 space-y-1.5 text-[11px]">
+      {items.map((item) => (
+        <li key={item.label} className="flex items-center gap-2">
+          <span className={cn("h-3.5 w-3.5 shrink-0 rounded border", item.className)} />
+          {item.label}
+        </li>
+      ))}
+    </ul>
   );
 }
 

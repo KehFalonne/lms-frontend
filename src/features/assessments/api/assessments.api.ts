@@ -106,6 +106,7 @@ export interface QuestionBankSummary {
   description: string;
   visibility: string;
   questionCount: number;
+  owner: { id: string; fullName: string; email: string } | null;
 }
 
 export interface BankQuestionSummary {
@@ -116,14 +117,58 @@ export interface BankQuestionSummary {
   defaultPoints: string;
   difficulty: string;
   status: string;
+  options?: { id: string; text: string; isCorrect: boolean; position: number }[];
 }
 
-export async function getQuestionBanks() {
-  return get<ApiResponse<QuestionBankSummary[]>>(`/question-banks/`);
+export async function getQuestionBanks(courseOfferingId?: string) {
+  return get<ApiResponse<QuestionBankSummary[]>>(`/question-banks/`, {
+    params: courseOfferingId ? { courseOfferingId } : undefined,
+  });
+}
+
+export async function createQuestionBank(courseOfferingId: string, title: string) {
+  return post<ApiResponse<QuestionBankSummary>>("/question-banks/", {
+    courseOfferingId,
+    title,
+    description: "Questions for this course.",
+    visibility: "PRIVATE",
+  });
 }
 
 export async function getBankQuestions(bankId: string) {
   return get<ApiResponse<BankQuestionSummary[]>>(`/question-banks/${bankId}/questions/`);
+}
+
+export async function importWordQuestions(bankId: string, file: File) {
+  const formData = new FormData();
+  formData.append("file", file);
+  return post<ApiResponse<BankQuestionSummary[]>>(
+    `/question-banks/${bankId}/questions/import-word/`,
+    formData,
+    { headers: { "Content-Type": "multipart/form-data" } }
+  );
+}
+
+export async function importAnswerKey(
+  bankId: string,
+  file: File,
+  questionIds?: string[]
+) {
+  const formData = new FormData();
+  formData.append("file", file);
+  questionIds?.forEach((id) => formData.append("questionIds", id));
+  return post<ApiResponse<{ applied: number; totalQuestions: number }>>(
+    `/question-banks/${bankId}/questions/import-answer-key/`,
+    formData,
+    { headers: { "Content-Type": "multipart/form-data" } }
+  );
+}
+
+export async function updateBankQuestion(
+  questionId: string,
+  payload: { options?: { text: string; isCorrect: boolean; position: number }[] }
+) {
+  return patch<ApiResponse<BankQuestionSummary>>(`/questions/${questionId}/`, payload);
 }
 
 // ── Assessment question attachment ────────────────────────────────
@@ -154,6 +199,13 @@ export async function attachQuestion(
   return post<ApiResponse<AssessmentQuestionRow>>(
     `/assessments/${assessmentId}/questions/`,
     payload
+  );
+}
+
+export async function attachQuestions(assessmentId: string, questionIds: string[]) {
+  return post<ApiResponse<AssessmentQuestionRow[]>>(
+    `/assessments/${assessmentId}/questions/`,
+    { questionIds }
   );
 }
 
@@ -295,6 +347,16 @@ export interface CAInvigilator {
 
 export async function listCAInvigilators() {
   return get<ApiResponse<CAInvigilator[]>>("/ca-invigilators/");
+}
+
+export async function assignCAInvigilator(
+  assessmentId: string,
+  invigilatorId: string | null
+) {
+  return patch<ApiResponse<{ assessmentId: string; invigilator: CAInvigilator | null }>>(
+    `/assessments/${assessmentId}/ca-invigilator/`,
+    { invigilatorId }
+  );
 }
 
 export async function applyCAInvigilatorAction(

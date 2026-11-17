@@ -1,11 +1,25 @@
 "use client";
 
 import { use, useEffect, useRef, useState } from "react";
-import { BookOpen, Pencil, Plus, Send, Trash2 } from "lucide-react";
+import {
+  BookOpen,
+  Code2,
+  File,
+  FileText,
+  Headphones,
+  Link2,
+  Paperclip,
+  Pencil,
+  Plus,
+  Send,
+  Trash2,
+  Video,
+  type LucideIcon,
+} from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
+import { GlassCard, PanelHeader, TONE_CHIP } from "@/components/ui/glass-card";
 import { Dialog } from "@/components/ui/dialog";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ErrorState } from "@/components/ui/error-state";
@@ -14,6 +28,7 @@ import { Select } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { FileUploader, type UploadedFile } from "@/components/ui/file-uploader";
+import { cn } from "@/lib/utils/cn";
 import {
   useCourseModules,
   useCreateContentItem,
@@ -63,17 +78,21 @@ export default function LecturerContentPage({
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
+      <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h2 className="text-lg font-semibold">Course content</h2>
-          <p className="text-muted-foreground text-sm">
+          <p className="text-primary flex items-center gap-2 text-[10px] font-semibold tracking-[0.22em] uppercase">
+            <span aria-hidden className="bg-primary/50 h-px w-6" />
+            Course materials
+          </p>
+          <h2 className="mt-2 text-xl font-semibold tracking-tight">Course content</h2>
+          <p className="text-muted-foreground mt-1 max-w-md text-sm leading-6">
             Organize learning materials into modules and publish them when ready.
           </p>
         </div>
         <Button size="sm" onClick={() => setModuleDialogOpen(true)}>
           <Plus className="mr-1.5 h-4 w-4" /> New module
         </Button>
-      </div>
+      </header>
 
       {isLoading && (
         <div className="space-y-3">
@@ -248,22 +267,30 @@ function ModuleCard({ module, courseId }: { module: CourseModule; courseId: stri
   }
 
   return (
-    <Card className="overflow-hidden">
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b p-4">
-        <div>
-          <p className="text-muted-foreground text-xs uppercase">
-            Module {module.position}
-          </p>
-          <h3 className="font-semibold">{title}</h3>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <Button size="sm" variant="ghost" onClick={() => setEditModuleOpen(true)}>
-            <Pencil className="mr-1.5 h-4 w-4" /> Edit module
-          </Button>
-          <Button size="sm" variant="outline" onClick={() => setOpen(true)}>
-            <Plus className="mr-1.5 h-4 w-4" /> Add material
-          </Button>
-        </div>
+    <GlassCard className="cv-auto overflow-hidden">
+      <div className="border-border/70 border-b">
+        <PanelHeader
+          icon={BookOpen}
+          tone="info"
+          title={
+            <span className="flex min-w-0 flex-col">
+              <span className="text-muted-foreground text-[9px] font-semibold tracking-[0.18em] uppercase">
+                Module {module.position}
+              </span>
+              <span className="truncate text-sm font-semibold">{title}</span>
+            </span>
+          }
+          right={
+            <div className="flex flex-wrap gap-2">
+              <Button size="sm" variant="ghost" onClick={() => setEditModuleOpen(true)}>
+                <Pencil className="mr-1.5 h-4 w-4" /> Edit module
+              </Button>
+              <Button size="sm" variant="outline" onClick={() => setOpen(true)}>
+                <Plus className="mr-1.5 h-4 w-4" /> Add material
+              </Button>
+            </div>
+          }
+        />
       </div>
 
       {isLoading ? (
@@ -398,6 +425,7 @@ function ModuleCard({ module, courseId }: { module: CourseModule; courseId: stri
               files={attachmentFiles}
               onChange={setAttachmentFiles}
               maxFiles={5}
+              prefix="materials"
             />
           )}
           {form.contentType === "AUDIO" && (
@@ -434,6 +462,7 @@ function ModuleCard({ module, courseId }: { module: CourseModule; courseId: stri
                     : undefined
               }
               maxFiles={1}
+              prefix="materials"
             />
           )}
           {["VIDEO", "AUDIO", "PDF", "LINK", "EMBED"].includes(form.contentType) && (
@@ -482,7 +511,7 @@ function ModuleCard({ module, courseId }: { module: CourseModule; courseId: stri
           />
         </div>
       </Dialog>
-    </Card>
+    </GlassCard>
   );
 }
 
@@ -568,6 +597,22 @@ function validateChapters(chapters: AudioChapter[]): string | null {
     previousStart = chapter.startSeconds;
   }
   return null;
+}
+
+const CONTENT_TYPE_META: Record<string, { icon: LucideIcon; tone: string }> = {
+  TEXT: { icon: FileText, tone: TONE_CHIP.primary },
+  PDF: { icon: FileText, tone: TONE_CHIP.warning },
+  DOCUMENT: { icon: FileText, tone: TONE_CHIP.warning },
+  FILE: { icon: Paperclip, tone: TONE_CHIP.warning },
+  VIDEO: { icon: Video, tone: TONE_CHIP.info },
+  AUDIO: { icon: Headphones, tone: TONE_CHIP.success },
+  LINK: { icon: Link2, tone: TONE_CHIP.info },
+  EMBED: { icon: Code2, tone: TONE_CHIP.primary },
+};
+
+function ContentTypeIcon({ type }: { type: string }) {
+  const Icon = CONTENT_TYPE_META[type]?.icon ?? File;
+  return <Icon className="h-4 w-4" aria-hidden />;
 }
 
 function RichTextEditor({
@@ -691,10 +736,20 @@ function MaterialRow({ item, courseId }: { item: ManageContentItem; courseId: st
 
   return (
     <>
-      <div className="flex flex-wrap items-center justify-between gap-3 p-4">
-        <div className="min-w-0">
-          <p className="truncate text-sm font-medium">{item.title}</p>
-          <p className="text-muted-foreground text-xs">{item.contentType}</p>
+      <div className="cv-auto flex flex-wrap items-center justify-between gap-3 p-4">
+        <div className="flex min-w-0 items-center gap-3">
+          <span
+            className={cn(
+              "flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ring-1",
+              CONTENT_TYPE_META[item.contentType]?.tone ?? TONE_CHIP.primary
+            )}
+          >
+            <ContentTypeIcon type={item.contentType} />
+          </span>
+          <div className="min-w-0">
+            <p className="truncate text-sm font-medium">{item.title}</p>
+            <p className="text-muted-foreground text-xs">{item.contentType}</p>
+          </div>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <Badge variant={item.isPublished ? "success" : "default"}>
@@ -892,6 +947,7 @@ function MaterialRow({ item, courseId }: { item: ManageContentItem; courseId: st
                   : "video/mp4,video/webm,video/ogg,video/quicktime"
               }
               maxFiles={1}
+              prefix="materials"
             />
             </>
           )}
@@ -947,6 +1003,7 @@ function MaterialRow({ item, courseId }: { item: ManageContentItem; courseId: st
                   }}
                   accept="application/pdf"
                   maxFiles={1}
+                  prefix="materials"
                 />
               )}
             </>
@@ -962,6 +1019,7 @@ function MaterialRow({ item, courseId }: { item: ManageContentItem; courseId: st
               files={attachmentFiles}
               onChange={setAttachmentFiles}
               maxFiles={5}
+              prefix="materials"
             />
           )}
           {["VIDEO", "AUDIO", "PDF", "LINK", "EMBED"].includes(form.contentType) && (

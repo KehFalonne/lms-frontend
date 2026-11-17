@@ -1,5 +1,7 @@
 import { format } from "date-fns";
 
+import { cn } from "@/lib/utils/cn";
+
 function dateLabel(date: Date): string {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -14,10 +16,17 @@ function dateLabel(date: Date): string {
 
 export function DateDivider({ date }: { date: string }) {
   return (
-    <div className="my-4 flex items-center justify-center">
-      <span className="bg-surface text-muted-foreground rounded-full px-3 py-1 text-xs font-medium shadow-sm">
+    <div className="my-4 flex items-center justify-center gap-3" aria-hidden>
+      <span aria-hidden className="h-px w-10 bg-gradient-to-r from-transparent to-border" />
+      <span
+        className={cn(
+          "rounded-full bg-background/80 px-3 py-1 text-[9px] font-semibold uppercase tracking-[0.22em]",
+          "text-muted-foreground ring-1 ring-border/70 backdrop-blur-sm",
+        )}
+      >
         {dateLabel(new Date(date))}
       </span>
+      <span aria-hidden className="h-px w-10 bg-gradient-to-l from-transparent to-border" />
     </div>
   );
 }

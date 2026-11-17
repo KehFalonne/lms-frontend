@@ -1,5 +1,12 @@
 export type NotificationType =
-  "ANNOUNCEMENT" | "ASSIGNMENT" | "ASSESSMENT" | "GRADE" | "DISCUSSION" | "SYSTEM";
+  | "ANNOUNCEMENT"
+  | "ASSIGNMENT"
+  | "ASSESSMENT"
+  | "GRADE"
+  | "DISCUSSION"
+  | "ENROLLMENT"
+  | "CA_INVIGILATOR_MESSAGE"
+  | "SYSTEM";
 
 export interface Notification {
   id: string;

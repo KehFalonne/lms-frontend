@@ -3,11 +3,16 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
   attachQuestion,
+  attachQuestions,
   createBankQuestion,
+  createQuestionBank,
   detachQuestion,
   getAssessmentQuestions,
   getBankQuestions,
   getQuestionBanks,
+  importAnswerKey,
+  importWordQuestions,
+  updateBankQuestion,
   updateAssessmentQuestion,
   type CreateQuestionPayload,
 } from "../api/assessments.api";
@@ -162,11 +167,24 @@ export function useAssessmentQuestions(assessmentId: string | null) {
   });
 }
 
-export function useQuestionBanks() {
+export function useQuestionBanks(courseOfferingId?: string | null) {
   return useQuery({
-    queryKey: ["question-banks"],
-    queryFn: getQuestionBanks,
+    queryKey: ["question-banks", courseOfferingId],
+    queryFn: () => getQuestionBanks(courseOfferingId ?? undefined),
+    enabled: !!courseOfferingId,
     staleTime: 60_000,
+  });
+}
+
+export function useCreateQuestionBank(courseOfferingId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (title: string) => createQuestionBank(courseOfferingId, title),
+    onSuccess: () => {
+      toast.success("Question bank created");
+      qc.invalidateQueries({ queryKey: ["question-banks", courseOfferingId] });
+    },
+    onError: (err) => toast.error(normalizeError(err).message),
   });
 }
 
@@ -179,12 +197,74 @@ export function useBankQuestions(bankId: string | null) {
   });
 }
 
+export function useImportWordQuestions(bankId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (file: File) => importWordQuestions(bankId, file),
+    onSuccess: () => {
+      toast.success("Word questions imported as drafts");
+      qc.invalidateQueries({ queryKey: ["bank-questions", bankId] });
+      qc.invalidateQueries({ queryKey: ["question-banks"] });
+    },
+    onError: (err) => toast.error(normalizeError(err).message),
+  });
+}
+
+export function useImportAnswerKey(bankId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ file, questionIds }: { file: File; questionIds?: string[] }) =>
+      importAnswerKey(bankId, file, questionIds),
+    onSuccess: (res) => {
+      toast.success(
+        `Answer key applied to ${res.data.applied} of ${res.data.totalQuestions} questions`
+      );
+      qc.invalidateQueries({ queryKey: ["bank-questions", bankId] });
+      qc.invalidateQueries({ queryKey: ["question-banks"] });
+    },
+    onError: (err) => toast.error(normalizeError(err).message),
+  });
+}
+
+export function useUpdateBankQuestion() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      questionId,
+      options,
+    }: {
+      questionId: string;
+      options: { text: string; isCorrect: boolean; position: number }[];
+    }) => updateBankQuestion(questionId, { options }),
+    onSuccess: (_, variables) => {
+      toast.success("Correct answer saved");
+      qc.invalidateQueries({ queryKey: ["bank-questions"] });
+    },
+    onError: (err) => toast.error(normalizeError(err).message),
+  });
+}
+
 export function useAttachQuestion(assessmentId: string) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (payload: { questionId: string; points?: string }) =>
       attachQuestion(assessmentId, payload),
     onSuccess: () => {
+      qc.invalidateQueries({
+        queryKey: ["assessment-questions", assessmentId],
+      });
+      qc.invalidateQueries({ queryKey: ["assessment", assessmentId] });
+    },
+    onError: (err) => toast.error(normalizeError(err).message),
+  });
+}
+
+export function useAttachQuestions(assessmentId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (questionIds: string[]) => attachQuestions(assessmentId, questionIds),
+    onSuccess: (res) => {
+      toast.success(`${res.data.length} questions added to the assessment`);
       qc.invalidateQueries({
         queryKey: ["assessment-questions", assessmentId],
       });

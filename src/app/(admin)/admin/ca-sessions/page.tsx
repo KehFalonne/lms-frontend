@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ClipboardList } from "lucide-react";
 
 import { AuthGate } from "@/components/layout/auth-gate";
@@ -15,6 +15,11 @@ import { get } from "@/lib/api/client";
 import type { ApiResponse } from "@/types/api.types";
 import { ADMIN_ROLES } from "@/lib/constants/routes";
 import { normalizeError } from "@/lib/api/errors";
+import {
+  assignCAInvigilator,
+  listCAInvigilators,
+  type CAInvigilator,
+} from "@/features/assessments/api/assessments.api";
 
 interface CASession {
   id: string;
@@ -38,9 +43,27 @@ export default function AdminCASessionsPage() {
 }
 
 function CASessionsContent() {
+  const queryClient = useQueryClient();
   const sessions = useQuery({
     queryKey: ["admin-ca-sessions"],
     queryFn: listCASessions,
+  });
+  const invigilators = useQuery({
+    queryKey: ["ca-invigilators"],
+    queryFn: listCAInvigilators,
+    staleTime: 60_000,
+  });
+  const assign = useMutation({
+    mutationFn: ({
+      assessmentId,
+      invigilatorId,
+    }: {
+      assessmentId: string;
+      invigilatorId: string | null;
+    }) => assignCAInvigilator(assessmentId, invigilatorId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-ca-sessions"] });
+    },
   });
   const rows = sessions.data?.data ?? [];
 
@@ -75,12 +98,31 @@ function CASessionsContent() {
               <div>
                 <p className="font-medium">{session.title}</p>
                 <p className="text-muted-foreground text-xs">
-                  {session.courseCode} · Invigilator:{" "}
+                  <span className="course-code">{session.courseCode}</span> · Invigilator:{" "}
                   {session.invigilator?.name ?? "Not assigned"}
                 </p>
               </div>
               <div className="flex items-center gap-2">
                 <Badge>{session.status}</Badge>
+                <select
+                  aria-label={`Assign invigilator for ${session.title}`}
+                  value={session.invigilator?.id ?? ""}
+                  disabled={invigilators.isLoading || assign.isPending}
+                  onChange={(event) =>
+                    assign.mutate({
+                      assessmentId: session.id,
+                      invigilatorId: event.target.value || null,
+                    })
+                  }
+                  className="border-input bg-background h-9 max-w-52 rounded-md border px-2 text-xs"
+                >
+                  <option value="">Not assigned</option>
+                  {(invigilators.data?.data ?? []).map((staff: CAInvigilator) => (
+                    <option key={staff.id} value={staff.id}>
+                      {staff.firstName} {staff.lastName}
+                    </option>
+                  ))}
+                </select>
                 <Link
                   href={`/lecturer/courses/${session.courseId}/assessments/${session.id}/monitor`}
                   className="bg-primary text-primary-foreground hover:bg-primary/90 rounded-md px-3 py-2 text-sm font-medium"

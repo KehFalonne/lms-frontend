@@ -44,6 +44,7 @@ export interface CreateAssignmentPayload {
   title: string;
   description?: string;
   instructions?: string;
+  attachmentFileIds?: string[];
   maxScore: string;
   dueAt: string;
   availableFrom?: string | null;
